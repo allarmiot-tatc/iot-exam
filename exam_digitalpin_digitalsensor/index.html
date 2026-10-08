@@ -182,6 +182,13 @@
     </div>
 
     <div id="copyAlert" style="display: none; margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold; text-align: center;"></div>
+
+    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span style="font-size: 0.85em; color: #64748b;">⏱️ เวลาทำข้อสอบ: <strong>15 นาที</strong> (1 นาที/ข้อ บังคับส่งอัตโนมัติ)</span>
+        <button type="button" onclick="resetExamTimerForTest()" style="background: #e11d48; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.82em; display: inline-flex; align-items: center; gap: 4px;">
+            <span>🔄 รีเซ็ตเวลาสอบ (สำหรับทดสอบ)</span>
+        </button>
+    </div>
 </div>
 
 <div class="form-container">
@@ -568,32 +575,187 @@
         studentNameInput.addEventListener('input', updateWatermark);
     }
 
-    // --- ส่วนจัดการส่งคำตอบแบบ Asynchronous ป้องกัน Error 405 ---
-    document.getElementById('quizForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    // =========================================================================
+    // การระบุชุดข้อสอบและตั้งค่าระบบจับเวลา 15 นาที พร้อม Auto-Submit
+    // =========================================================================
+    const CURRENT_EXAM_KEY = 'exam_digitalpin_digitalsensor';
 
-        // ตรวจสอบว่ารหัสถูกล็อกเนื่องจากเคยส่งแล้วหรือไม่
-        if (isIdDuplicate) {
-            alert('❌ ไม่สามารถส่งได้: รหัสประจำตัวนี้เคยส่งแบบทดสอบไปแล้ว');
+    // ตั้งค่าคงที่: 15 ข้อ ให้เวลาข้อละ 1 นาที = 15 นาที (900 วินาที)
+    const EXAM_DURATION_MINUTES = 15;
+    const EXAM_DURATION_SECONDS = EXAM_DURATION_MINUTES * 60;
+    const TIMER_STORAGE_KEY = 'exam_timer_start_' + CURRENT_EXAM_KEY;
+    const SUBMITTED_STORAGE_KEY = 'exam_submitted_' + CURRENT_EXAM_KEY;
+
+    let examTimerInterval = null;
+    let isAutoSubmitting = false;
+
+    // 1. สร้าง Widget ตัวนับเวลาถอยหลังแบบลอยตัว (Floating Badge)
+    function createTimerWidget() {
+        if (document.getElementById('examTimerFloatingWidget')) return;
+
+        const widget = document.createElement('div');
+        widget.id = 'examTimerFloatingWidget';
+        widget.style.cssText = `
+            position: fixed;
+            top: 16px;
+            right: 20px;
+            z-index: 9999;
+            background: rgba(15, 23, 42, 0.92);
+            color: #f8fafc;
+            padding: 7px 16px;
+            border-radius: 9999px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            border: 2px solid #38bdf8;
+            backdrop-filter: blur(8px);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.92em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            transition: all 0.3s ease;
+        `;
+        widget.innerHTML = `
+            <span id="examTimerIcon" style="font-size: 1.15em;">⏱️</span>
+            <span style="font-size: 0.85em; opacity: 0.85; font-family: system-ui, -apple-system, sans-serif;">เหลือเวลา:</span>
+            <span id="examTimerDisplay" style="letter-spacing: 1px; font-size: 1.15em; color: #38bdf8;">15:00</span>
+        `;
+        document.body.appendChild(widget);
+    }
+
+    // 2. เริ่มต้นระบบจับเวลา (อิงตามเวลาจริง ป้องกันการรีเฟรชหน้าเพื่อเริ่มใหม่)
+    function initExamTimer() {
+        createTimerWidget();
+
+        if (localStorage.getItem(SUBMITTED_STORAGE_KEY) === 'true') {
+            const display = document.getElementById('examTimerDisplay');
+            if (display) {
+                display.innerText = 'ส่งแล้ว';
+                display.style.color = '#10b981';
+            }
             return;
         }
 
-        // ตรวจสอบว่าตอบครบทุกข้อหรือไม่
-        for (let i = 0; i < 15; i++) {
-            const checked = document.querySelector(`input[name="q_${i}"]:checked`);
-            if (!checked) {
-                alert(`กรุณาตอบคำถามให้ครบทุกข้อก่อนส่ง (ยังมีข้อที่ไม่ได้เลือกคำตอบ)`);
-                return;
+        let startTime = localStorage.getItem(TIMER_STORAGE_KEY);
+        if (!startTime) {
+            startTime = Date.now().toString();
+            localStorage.setItem(TIMER_STORAGE_KEY, startTime);
+        }
+
+        function updateTimerTick() {
+            const now = Date.now();
+            const elapsedSeconds = Math.floor((now - parseInt(startTime, 10)) / 1000);
+            const remainingSeconds = Math.max(0, EXAM_DURATION_SECONDS - elapsedSeconds);
+
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            const timeStr = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+
+            const display = document.getElementById('examTimerDisplay');
+            const widget = document.getElementById('examTimerFloatingWidget');
+            const icon = document.getElementById('examTimerIcon');
+
+            if (display) display.innerText = timeStr;
+
+            if (widget && display) {
+                if (remainingSeconds <= 60) {
+                    widget.style.border = '2px solid #ef4444';
+                    widget.style.background = 'rgba(127, 29, 29, 0.95)';
+                    widget.style.boxShadow = '0 0 16px rgba(239, 68, 68, 0.55)';
+                    display.style.color = '#fca5a5';
+                    if (icon) icon.innerText = '🚨';
+                } else if (remainingSeconds <= 180) {
+                    widget.style.border = '2px solid #f59e0b';
+                    widget.style.background = 'rgba(120, 53, 15, 0.92)';
+                    widget.style.boxShadow = '0 4px 14px rgba(245, 158, 11, 0.3)';
+                    display.style.color = '#fcd34d';
+                    if (icon) icon.innerText = '⚠️';
+                } else {
+                    widget.style.border = '2px solid #38bdf8';
+                    widget.style.background = 'rgba(15, 23, 42, 0.92)';
+                    display.style.color = '#38bdf8';
+                    if (icon) icon.innerText = '⏱️';
+                }
+            }
+
+            if (remainingSeconds <= 0) {
+                if (examTimerInterval) clearInterval(examTimerInterval);
+                triggerAutoSubmit();
             }
         }
 
-        submitBtn.disabled = true;
-        submitBtn.innerText = '⏳ กำลังส่งคำตอบและตรวจผล...';
+        updateTimerTick();
+        examTimerInterval = setInterval(updateTimerTick, 1000);
+    }
+
+    // 3. ฟังก์ชันสั่ง Auto-Submit เมื่อหมดเวลา
+    function triggerAutoSubmit() {
+        if (isAutoSubmitting) return;
+        isAutoSubmitting = true;
+
+        document.querySelectorAll('#quizForm input[type="radio"]').forEach(function(radio) {
+            radio.disabled = true;
+        });
+
+        window.onbeforeunload = null;
+
+        const display = document.getElementById('examTimerDisplay');
+        const widget = document.getElementById('examTimerFloatingWidget');
+        if (display) {
+            display.innerText = 'หมดเวลา!';
+            display.style.color = '#ef4444';
+        }
+        if (widget) {
+            widget.style.border = '2px solid #ef4444';
+            widget.style.background = 'rgba(127, 29, 29, 0.98)';
+        }
+
+        alert('⏰ หมดเวลาการทำข้อสอบ (15 นาที)!\nระบบกำลังบันทึกและส่งคำตอบที่คุณทำไว้โดยอัตโนมัติ...');
+
+        executeSubmit(true);
+    }
+
+    // 4. ฟังก์ชันหลักสำหรับส่งคำตอบ (รองรับทั้งส่งปกติ และ Auto-Submit เมื่อหมดเวลา)
+    function executeSubmit(isAuto) {
+        const studentIdEl = document.getElementById('studentIdInput');
+        const studentRoomEl = document.getElementById('studentRoomInput');
+        const studentNameEl = document.getElementById('studentNameInput');
+        const submitBtn = document.querySelector('.submit-btn');
+
+        if (!isAuto) {
+            if (typeof isIdDuplicate !== 'undefined' && isIdDuplicate) {
+                alert('❌ ไม่สามารถส่งได้: รหัสประจำตัวนี้เคยส่งแบบทดสอบไปแล้ว');
+                return;
+            }
+            if (typeof isStudentValid !== 'undefined' && !isStudentValid) {
+                alert('❌ ไม่สามารถส่งได้: รหัสประจำตัวนี้เคยส่งแบบทดสอบไปแล้ว');
+                return;
+            }
+
+            if (!studentIdEl.value.trim() || !studentNameEl.value.trim() || !studentRoomEl.value.trim()) {
+                alert('กรุณากรอกข้อมูลผู้เข้าสอบ (รหัสประจำตัว, ห้องเรียน, ชื่อ-นามสกุล) ให้ครบถ้วน');
+                return;
+            }
+
+            for (let i = 0; i < 15; i++) {
+                const checked = document.querySelector(`input[name="q_${i}"]:checked`);
+                if (!checked) {
+                    alert('กรุณาตอบคำถามให้ครบทุกข้อก่อนส่ง (ยังมีข้อที่ไม่ได้เลือกคำตอบ)');
+                    return;
+                }
+            }
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = isAuto ? '⏳ หมดเวลา - กำลังส่งคำตอบอัตโนมัติ...' : '⏳ กำลังส่งคำตอบและตรวจผล...';
+        }
 
         const formData = {
-            studentId: document.getElementById('studentIdInput').value.trim(),
-            studentRoom: document.getElementById('studentRoomInput').value.trim(),
-            studentName: document.getElementById('studentNameInput').value.trim()
+            studentId: studentIdEl.value.trim() || (isAuto ? 'หมดเวลา-' + Date.now().toString().slice(-4) : 'ไม่ระบุ ID'),
+            studentRoom: studentRoomEl.value.trim() || (isAuto ? 'ส่งอัตโนมัติ' : 'ไม่ระบุห้อง'),
+            studentName: studentNameEl.value.trim() || (isAuto ? 'ผู้สอบ (หมดเวลา 15 นาที)' : 'ไม่ระบุชื่อ')
         };
 
         for (let i = 0; i < 15; i++) {
@@ -601,60 +763,112 @@
             formData[`q_${i}`] = sel ? sel.value : "ไม่ได้ตอบ";
         }
 
-        if (typeof google !== 'undefined' && google.script && google.script.run) {
-            google.script.run
-                .withSuccessHandler(function(response) {
-                    if (response && response.alreadySubmitted) {
-                        isIdDuplicate = true;
-                        idStatusMsg.style.display = 'block';
-                        idStatusMsg.style.color = '#dc3545';
-                        idStatusMsg.innerText = '❌ ' + response.message;
-                        submitBtn.disabled = true;
-                        submitBtn.innerText = 'ส่งคำตอบแล้ว';
-                        alert('⚠️ ไม่สามารถส่งได้:\n' + response.message);
-                        return;
-                    }
+        window.onbeforeunload = null;
+        localStorage.setItem(SUBMITTED_STORAGE_KEY, 'true');
+        if (examTimerInterval) clearInterval(examTimerInterval);
 
-                    if (response && !response.success) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerText = 'ส่งคำตอบ';
-                        alert('⚠️ ' + (response.message || 'เกิดข้อผิดพลาด'));
-                        return;
-                    }
+        function handleSuccess(response) {
+            if (response && response.alreadySubmitted) {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerText = 'ส่งคำตอบแล้ว';
+                }
+                alert('⚠️ ไม่สามารถส่งได้:\n' + response.message);
+                return;
+            }
 
-                    const scoreText = response && response.score !== undefined ? response.score : "ตรวจแล้ว";
-                    document.querySelector('.form-container').innerHTML = `
-                        <div style="text-align:center; padding: 40px 15px;">
-                            <div style="font-size: 55px; margin-bottom: 15px;">🎉</div>
-                            <h2 style="color: #28a745; border: none; margin-bottom: 10px;">ส่งคำตอบเรียบร้อยแล้ว</h2>
-                            <p style="font-size: 1.15em; color: #444; margin-bottom: 20px;">
-                                ระบบได้รับข้อมูลของ <strong>${formData.studentName}</strong> (ห้อง ${formData.studentRoom}) เรียบร้อยแล้วครับ
-                            </p>
-                            <div style="display: inline-block; background: #e8f5e9; border: 1px solid #c8e6c9; padding: 18px 30px; border-radius: 10px;">
-                                <div style="font-size: 0.9em; color: #2e7d32; font-weight: bold;">คะแนนสอบที่ได้</div>
-                                <div style="font-size: 2.4em; color: #1b5e20; font-weight: bold; margin-top: 5px;">${scoreText} / 15</div>
-                            </div>
-                        </div>
-                    `;
-                })
-                .withFailureHandler(function(err) {
+            if (response && response.success === false) {
+                if (submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.innerText = 'ส่งคำตอบ';
-                    alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (err.message || err));
-                })
+                }
+                alert('⚠️ ' + (response.message || 'เกิดข้อผิดพลาด'));
+                return;
+            }
+
+            const scoreText = (response && response.score !== undefined) ? response.score : "ตรวจแล้ว";
+            const autoBadge = isAuto ? '<div style="display:inline-block; margin-top:8px; padding:6px 14px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; border-radius:8px; font-size:0.9em; font-weight:bold;">⏰ บังคับส่งคำตอบอัตโนมัติเนื่องจากครบเวลา 15 นาที</div>' : '';
+
+            const container = document.querySelector('.form-container');
+            if (container) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 40px 15px;">
+                        <div style="font-size: 55px; margin-bottom: 15px;">${isAuto ? '⏰' : '🎉'}</div>
+                        <h2 style="color: #28a745; border: none; margin-bottom: 10px;">ส่งคำตอบเรียบร้อยแล้ว</h2>
+                        ${autoBadge}
+                        <p style="font-size: 1.15em; color: #444; margin-top: 15px; margin-bottom: 20px;">
+                            ระบบได้รับข้อมูลของ <strong>${formData.studentName}</strong> (ห้อง ${formData.studentRoom}) เรียบร้อยแล้วครับ
+                        </p>
+                        <div style="display: inline-block; background: #e8f5e9; border: 1px solid #c8e6c9; padding: 18px 30px; border-radius: 10px;">
+                            <div style="font-size: 0.9em; color: #2e7d32; font-weight: bold;">คะแนนสอบที่ได้</div>
+                            <div style="font-size: 2.4em; color: #1b5e20; font-weight: bold; margin-top: 5px;">${scoreText} / 15</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function handleFailure(err) {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'ส่งคำตอบ';
+            }
+            alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (err.message || err));
+        }
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+                .withSuccessHandler(handleSuccess)
+                .withFailureHandler(handleFailure)
                 .processQuiz(formData);
         } else {
-            // โหมดทดสอบหน้าเว็บ (ออฟไลน์)
-            alert("บันทึกคำตอบสำเร็จ (โหมดทดสอบภายนอก Google Apps Script)");
-            submitBtn.disabled = false;
-            submitBtn.innerText = 'ส่งคำตอบ';
+            handleSuccess({ success: true, score: 'โหมดทดสอบ' });
         }
+    }
+
+    // 5. ผูก Event Listener กับฟอร์ม
+    document.getElementById('quizForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        executeSubmit(false);
     });
 
     // =========================================================================
-    // ฟังก์ชันส่วนของครูผู้สอน: เซฟลิงก์ Google Sheets & คัดลอกโค้ด Deploy
+    // ระบบความปลอดภัยสำหรับครูผู้สอน (Teacher PIN Code)
     // =========================================================================
-    const CURRENT_EXAM_KEY = 'exam_digitalpin_digitalsensor';
+    const TEACHER_PIN = "1234";
+
+    function verifyTeacherAuth() {
+        if (sessionStorage.getItem('teacher_auth') === 'true') {
+            return true;
+        }
+        const enteredPin = prompt("🔒 กรุณากรอกรหัสผ่านครูผู้สอน (Teacher PIN):");
+        if (!enteredPin) return false;
+        if (enteredPin.trim() === TEACHER_PIN) {
+            sessionStorage.setItem('teacher_auth', 'true');
+            return true;
+        } else {
+            alert("❌ รหัสผ่านไม่ถูกต้อง ไม่อนุญาตให้เข้าถึงส่วนของครูผู้สอน");
+            return false;
+        }
+    }
+
+    // 6. ฟังก์ชันสำหรับครูเพื่อรีเซ็ตเวลาทดสอบ (ต้องผ่านรหัส PIN)
+    function resetExamTimerForTest() {
+        if (!verifyTeacherAuth()) return;
+        if (confirm('คุณต้องการรีเซ็ตตัวจับเวลา 15 นาที สำหรับเครื่องนี้เพื่อทดสอบใหม่หรือไม่?')) {
+            localStorage.removeItem(TIMER_STORAGE_KEY);
+            localStorage.removeItem(SUBMITTED_STORAGE_KEY);
+            alert('✅ รีเซ็ตเวลาสอบเรียบร้อยแล้ว กำลังโหลดหน้าใหม่...');
+            location.reload();
+        }
+    }
+
+    // เริ่มต้นระบบจับเวลาเมื่อโหลดหน้าเว็บ
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', initExamTimer);
+    } else {
+        initExamTimer();
+    }
 
     function extractSheetId(input) {
         if (!input) return '';
@@ -669,6 +883,9 @@
         const panel = document.getElementById('teacherPanel');
         if (!panel) return;
         const isHidden = panel.style.display === 'none' || panel.style.display === '';
+        if (isHidden) {
+            if (!verifyTeacherAuth()) return;
+        }
         panel.style.display = isHidden ? 'block' : 'none';
         if (isHidden) {
             panel.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -229,9 +229,9 @@ function writeJsonFile(filePath, data) {
     }
 }
 
-// 3. Helper parse JSON Body
+// 3. Helper parse JSON Body (Safely handles client disconnects)
 function parseRequestBody(req) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         let body = '';
         req.on('data', chunk => { body += chunk.toString(); });
         req.on('end', () => {
@@ -242,7 +242,9 @@ function parseRequestBody(req) {
                 resolve({});
             }
         });
-        req.on('error', reject);
+        req.on('error', () => {
+            resolve({});
+        });
     });
 }
 
@@ -262,20 +264,25 @@ const MIME_TYPES = {
 
 // 5. สร้าง HTTP Server
 const server = http.createServer(async (req, res) => {
-    ensureDataStore();
-    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    const pathname = decodeURIComponent(parsedUrl.pathname);
+    // Handle socket errors gracefully when client disconnects or aborts
+    req.on('error', () => {});
+    res.on('error', () => {});
 
-    // Enable CORS for flexibility
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    try {
+        ensureDataStore();
+        const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const pathname = decodeURIComponent(parsedUrl.pathname);
 
-    if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        res.end();
-        return;
-    }
+        // Enable CORS for flexibility
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+        if (req.method === 'OPTIONS') {
+            res.writeHead(204);
+            res.end();
+            return;
+        }
 
     // ==========================================
     // API ENDPOINTS
@@ -566,6 +573,27 @@ const server = http.createServer(async (req, res) => {
             res.end(content);
         });
     });
+    } catch (err) {
+        if (err.code !== 'ECONNRESET' && err.message !== 'aborted') {
+            console.error('Request handling error:', err);
+        }
+        if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end('500 Internal Server Error');
+        }
+    }
+});
+
+// ดักจับ Error ระดับโปรเซส เพื่อป้องกันเซิร์ฟเวอร์หลุดเมื่อ Client รีเฟรชหรือตัดการเชื่อมต่อกระทันหัน
+process.on('uncaughtException', (err) => {
+    if (err.code === 'ECONNRESET' || err.message === 'aborted') {
+        return; // ทำงานต่อตามปกติเมื่อ Client ยกเลิกการเชื่อมต่อ
+    }
+    console.error('Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('Unhandled Rejection:', reason);
 });
 
 // เริ่มต้นเปิดเซิร์ฟเวอร์ พร้อมค้นหาพอร์ตที่ว่างอัตโนมัติหาก 8000 ไม่ว่าง
