@@ -7,6 +7,21 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
+const os = require('os');
+
+// ฟังก์ชันค้นหาหมายเลข IP ของเครื่องในวง LAN / Wi-Fi
+function getLocalIpAddresses() {
+    const interfaces = os.networkInterfaces();
+    const ips = [];
+    for (const name of Object.keys(interfaces)) {
+        for (const net of interfaces[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                ips.push(net.address);
+            }
+        }
+    }
+    return ips;
+}
 
 const DEFAULT_PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8888;
 const ROOT_DIR = __dirname;
@@ -389,6 +404,19 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // API: ข้อมูลเซิร์ฟเวอร์และ IP สำหรับผู้เรียนเชื่อมต่อ
+    if (pathname === '/api/server-info' && req.method === 'GET') {
+        const ips = getLocalIpAddresses();
+        const primaryIp = ips.length > 0 ? ips[0] : 'localhost';
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            port: DEFAULT_PORT,
+            ips: ips,
+            primaryIp: primaryIp
+        }));
+        return;
+    }
+
     // API: ดูผลคะแนนการส่งทั้งหมด (สำหรับหน้า Dashboard / Scoreboard)
     if (pathname === '/api/submissions' && req.method === 'GET') {
         const submissions = readJsonFile(SUBMISSIONS_FILE, []);
@@ -543,11 +571,16 @@ const server = http.createServer(async (req, res) => {
 // เริ่มต้นเปิดเซิร์ฟเวอร์ พร้อมค้นหาพอร์ตที่ว่างอัตโนมัติหาก 8000 ไม่ว่าง
 function startServer(port) {
     server.listen(port, '0.0.0.0', () => {
+        const ips = getLocalIpAddresses();
+        const primaryIp = ips.length > 0 ? ips[0] : 'localhost';
         console.log('');
         console.log('================================================================');
         console.log('🚀 [ESP32 Examination Suite] Local Server กำลังทำงาน');
         console.log('================================================================');
-        console.log(`🌐 Dashboard รวมแบบทดสอบ:  http://localhost:${port}`);
+        console.log(`🌐 Dashboard (Local เครื่องนี้): http://localhost:${port}`);
+        if (ips.length > 0) {
+            console.log(`📡 Dashboard (สำหรับนักเรียนวง Wi-Fi/LAN): http://${primaryIp}:${port}`);
+        }
         console.log(`📡 แบบทดสอบ Wi-Fi:          http://localhost:${port}/exam_wifi/`);
         console.log(`🔌 แบบทดสอบ WebSocket:     http://localhost:${port}/exam_websocket/`);
         console.log(`📊 Scoreboard & Logs:       http://localhost:${port}#scoreboard`);

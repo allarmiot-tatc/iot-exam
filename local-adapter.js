@@ -103,5 +103,79 @@
         }
     };
 
+    // ฟังก์ชันช่วยคัดลอกลิงก์ข้อสอบชุดนี้สำหรับผู้เรียนจากในหน้าข้อสอบ
+    function copyStudentExamLinkFromPage(btn) {
+        function doCopy(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(function() {
+                    notify(text);
+                }).catch(function() {
+                    fallback(text);
+                });
+            } else {
+                fallback(text);
+            }
+        }
+        function fallback(text) {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            notify(text);
+        }
+        function notify(text) {
+            if (btn) {
+                var oldText = btn.innerHTML;
+                btn.innerHTML = '<span>✅ คัดลอกแล้ว!</span>';
+                btn.style.background = '#059669';
+                setTimeout(function() {
+                    btn.innerHTML = oldText;
+                    btn.style.background = '#0284c7';
+                }, 2200);
+            }
+            alert("📋 คัดลอกลิงก์สำหรับผู้เรียนเรียบร้อยแล้ว:\n" + text);
+        }
+
+        fetch('/api/server-info').then(function(res) {
+            return res.json();
+        }).then(function(info) {
+            var url = window.location.href;
+            if (info && info.primaryIp && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                var port = window.location.port ? ':' + window.location.port : '';
+                url = window.location.protocol + '//' + info.primaryIp + port + window.location.pathname;
+            }
+            doCopy(url);
+        }).catch(function() {
+            doCopy(window.location.href);
+        });
+    }
+
+    window.copyStudentExamLinkFromPage = copyStudentExamLinkFromPage;
+
+    function injectCopyButton() {
+        var teacherBtn = document.querySelector('button[onclick*="toggleTeacherPanel"]');
+        if (teacherBtn && teacherBtn.parentNode && !document.getElementById('btnCopyExamPageLink')) {
+            var btn = document.createElement('button');
+            btn.id = 'btnCopyExamPageLink';
+            btn.type = 'button';
+            btn.style.cssText = 'background: #0284c7; color: #ffffff; border: 1px solid #38bdf8; padding: 5px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; margin-right: 6px; transition: background 0.2s;';
+            btn.innerHTML = '<span>📋 คัดลอกลิงก์ให้นักเรียน</span>';
+            btn.onclick = function() {
+                copyStudentExamLinkFromPage(btn);
+            };
+            teacherBtn.parentNode.insertBefore(btn, teacherBtn);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectCopyButton);
+    } else {
+        injectCopyButton();
+    }
+
     console.log("⚡ [Local Adapter] Active for local testing (" + examType + ")");
 })();

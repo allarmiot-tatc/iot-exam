@@ -7,10 +7,24 @@ Compatible with Python 3.7+ (No pip install required)
 import os
 import sys
 import json
+import socket
 import mimetypes
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.parse
+
+def get_local_ip_addresses():
+    ips = []
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        ip = s.getsockname()[0]
+        s.close()
+        if ip and ip != '127.0.0.1':
+            ips.append(ip)
+    except Exception:
+        pass
+    return ips
 
 PORT = int(os.environ.get('PORT', 8888))
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -343,6 +357,12 @@ class ExamRequestHandler(BaseHTTPRequestHandler):
         path = parsed.path
         query = urllib.parse.parse_qs(parsed.query)
 
+        if path == '/api/server-info':
+            ips = get_local_ip_addresses()
+            primary_ip = ips[0] if ips else 'localhost'
+            self._send_json({'port': PORT, 'ips': ips, 'primaryIp': primary_ip})
+            return
+
         if path == '/api/settings':
             self._send_json(read_json(SETTINGS_FILE) if isinstance(read_json(SETTINGS_FILE), dict) else {})
             return
@@ -434,7 +454,11 @@ def run():
     ensure_data_store()
     server_address = ('', PORT)
     httpd = HTTPServer(server_address, ExamRequestHandler)
+    ips = get_local_ip_addresses()
+    primary_ip = ips[0] if ips else 'localhost'
     print(f"🚀 [Python Exam Server] Running at http://localhost:{PORT}")
+    if ips:
+        print(f"📡 [Student Wi-Fi/LAN URL] http://{primary_ip}:{PORT}")
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
