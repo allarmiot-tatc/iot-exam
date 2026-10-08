@@ -2,9 +2,9 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>แบบทดสอบ: หลักการและการใช้งาน MQTT</title>
+    <title>แบบทดสอบ: ESP32/ESP8266 Web Server, WebSocket & LittleFS</title>
     <!-- รองรับทั้ง Google Apps Script และ Local Server -->
-    <script src="/local-adapter.js"></script>
+    <script src="../local-adapter.js"></script>
     <style>
         * {
             -webkit-touch-callout: none !important; /* ปิดเมนูคัดลอก/แชร์บนมือถือ iOS & Android */
@@ -68,8 +68,8 @@
             padding-top: 18%;
         }
         .form-container { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: #0d9488; border-bottom: 2px solid #0d9488; padding-bottom: 10px; margin-top: 0; }
-        .question-block { background: #f8f9fa; padding: 20px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #0d9488; }
+        h2 { color: #0891b2; border-bottom: 2px solid #0891b2; padding-bottom: 10px; margin-top: 0; }
+        .question-block { background: #f8f9fa; padding: 20px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #0891b2; }
         .question-title { font-weight: bold; margin-bottom: 12px; font-size: 1.1em; line-height: 1.5; }
         
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
@@ -80,8 +80,8 @@
         .option-item { margin: 10px 0; display: flex; align-items: center; }
         .option-item input { margin-right: 12px; cursor: pointer; transform: scale(1.2); }
         .option-item label { cursor: pointer; width: 100%; font-size: 1em; }
-        .submit-btn { background-color: #0d9488; color: white; padding: 14px 24px; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.3s; margin-top: 10px; }
-        .submit-btn:hover { background-color: #0f766e; }
+        .submit-btn { background-color: #0891b2; color: white; padding: 14px 24px; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.3s; margin-top: 10px; }
+        .submit-btn:hover { background-color: #0e7490; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1em; }
 
         /* หน้าจอล็อกฉากหลังมืดทึบ */
@@ -99,56 +99,55 @@
         .refresh-btn { background-color: #ff3b30; color: white; padding: 15px 30px; border: none; border-radius: 6px; font-size: 1em; cursor: pointer; margin-top: 25px; font-weight: bold; }
         .refresh-btn:hover { background-color: #d32f2f; }
 
-        /* แถบจัดการสำหรับครูผู้สอน */
+        /* ส่วนสำหรับครูผู้สอน */
         .teacher-panel {
             max-width: 650px;
             margin: 0 auto 20px auto;
-            background: #f0fdfa;
-            border: 1px solid #ccfbf1;
+            background: #ecfeff;
+            border: 1px solid #a5f3fc;
             border-radius: 12px;
-            padding: 16px 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .teacher-panel h3 {
-            margin: 0 0 8px 0;
-            color: #115e59;
-            font-size: 1.05em;
+            margin: 0 0 12px 0;
+            color: #0e7490;
+            font-size: 1.1em;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         .sheet-input-group {
             display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
         .sheet-input-group input {
             flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #99f6e4;
+            padding: 10px 14px;
+            border: 1px solid #67e8f9;
             border-radius: 6px;
-            font-size: 0.9em;
+            font-size: 0.92em;
         }
         .save-sheet-btn {
-            background-color: #0d9488;
+            background-color: #0891b2;
             color: white;
             border: none;
+            padding: 10px 18px;
             border-radius: 6px;
-            padding: 8px 16px;
-            font-weight: bold;
             cursor: pointer;
-            font-size: 0.9em;
+            font-weight: bold;
+            font-size: 0.92em;
             white-space: nowrap;
+            transition: background 0.2s;
         }
         .save-sheet-btn:hover {
-            background-color: #0f766e;
+            background-color: #0e7490;
         }
         .portal-nav-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 12px;
-            color: #0f766e;
+            display: inline-block;
+            margin-bottom: 16px;
+            color: #0891b2;
             text-decoration: none;
             font-weight: bold;
             font-size: 0.92em;
@@ -189,7 +188,7 @@
 <!-- ส่วนจัดการสำหรับครูผู้สอน (Google Sheets & Source Code) -->
 <div class="teacher-panel">
     <h3>👨‍🏫 จัดการแบบทดสอบสำหรับครูผู้สอน (Google Sheets & Script)</h3>
-    <p style="margin: 0 0 10px 0; font-size: 0.88em; color: #134e4a;">
+    <p style="margin: 0 0 10px 0; font-size: 0.88em; color: #0e7490;">
         วางลิงก์ Google Sheets ของคุณ เพื่อใช้เป็นฐานข้อมูลบันทึกคะแนนและประวัติการสอบ:
     </p>
     
@@ -199,9 +198,9 @@
     </div>
     
     <div id="sheetStatusInfo" style="font-size: 0.86em; color: #4b5563; margin-bottom: 8px;">
-        <span id="sheetIdBadge" style="background: #ccfbf1; color: #115e59; padding: 2px 8px; border-radius: 4px; font-family: monospace;">ยังไม่ได้ระบุ Sheet ID</span>
+        <span id="sheetIdBadge" style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-family: monospace;">ยังไม่ได้ระบุ Sheet ID</span>
         <div style="margin-top: 6px;">
-            <a id="sheetExternalLink" href="#" target="_blank" style="display: none; color: #0d9488; text-decoration: none; font-weight: bold;">↗️ เปิด Google Sheets ของคุณ</a>
+            <a id="sheetExternalLink" href="#" target="_blank" style="display: none; color: #0891b2; text-decoration: none; font-weight: bold;">↗️ เปิด Google Sheets ของคุณ</a>
         </div>
     </div>
 
@@ -210,7 +209,7 @@
         <button type="button" onclick="copyCodeGsWithSheetId()" style="background: #059669; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(5,150,105,0.25); font-size: 0.92em;">
             <span>📋 คัดลอก Code.gs (ใส่ Sheet ID แล้ว)</span>
         </button>
-        <button type="button" onclick="copyIndexHtmlCode()" style="background: #0d9488; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(13,148,136,0.25); font-size: 0.92em;">
+        <button type="button" onclick="copyIndexHtmlCode()" style="background: #0891b2; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(8,145,178,0.25); font-size: 0.92em;">
             <span>📄 คัดลอก Index.html</span>
         </button>
     </div>
@@ -219,13 +218,13 @@
 </div>
 
 <div class="form-container">
-    <h2>แบบทดสอบ: หลักการและการใช้งาน MQTT</h2>
+    <h2>แบบทดสอบ: ESP32/ESP8266 Web Server, WebSocket & LittleFS</h2>
     
     <form action="" method="POST" id="quizForm">
         
         <!-- ส่วนข้อมูลผู้กรอกส่วนตัวก่อนเริ่มทำโจทย์ -->
-        <div class="question-block" style="border-left: 5px solid #0d9488;">
-            <div class="question-title" style="color: #0d9488; margin-bottom: 15px;">📝 ข้อมูลผู้เข้าสอบ</div>
+        <div class="question-block" style="border-left: 5px solid #0891b2;">
+            <div class="question-title" style="color: #0891b2; margin-bottom: 15px;">📝 ข้อมูลผู้เข้าสอบ</div>
             <div class="info-grid">
                 <div class="info-group">
                     <label for="studentIdInput">เลขประจำตัว (ID)</label>
@@ -254,152 +253,152 @@
     // ข้อมูลข้อสอบ 15 ข้อต้นแบบ
     const quizData = [
         {
-            q: "MQTT ย่อมาจากอะไร และถูกออกแบบมาเพื่อจุดประสงค์ใดเป็นหลัก?",
+            q: "โปรโตคอลใดที่ใช้สร้างการเชื่อมต่อแบบ Full-Duplex สองทางตลอดเวลา บน TCP Connection เดียวกัน?",
             c: [
-                "Message Queuing Telemetry Transport - โปรโตคอลสื่อสารน้ำหนักเบาสำหรับอุปกรณ์ IoT",
-                "Media Query Transfer Technology - โปรโตคอลสตรีมมิงวิดีโอความละเอียดสูง",
-                "Master Queue Text Transport - โปรโตคอลส่งอีเมลระหว่างเซิร์ฟเวอร์",
-                "Managed Query Terminal Transport - โปรโตคอลจัดการฐานข้อมูลขนาดใหญ่"
+                "HTTP GET",
+                "HTTP POST",
+                "WebSocket",
+                "Server-Sent Events (SSE)"
             ],
             qKey: "q_0"
         },
         {
-            q: "รูปแบบโครงสร้างการสื่อสารหลักของโปรโตคอล MQTT คือรูปแบบใด?",
+            q: "ระบบไฟล์ใดที่เข้ามาทดแทน SPIFFS สำหรับจัดเก็บไฟล์บน Flash Memory ของ ESP32/ESP8266?",
             c: [
-                "Client-Server แบบ Request-Response",
-                "Peer-to-Peer (P2P)",
-                "Publish / Subscribe",
-                "Master-Slave แบบ Polling"
+                "FAT32",
+                "LittleFS",
+                "NTFS",
+                "EEPROM"
             ],
             qKey: "q_1"
         },
         {
-            q: "ในการส่งข้อความ MQTT การกำหนด Quality of Service (QoS) ระดับ 0 หมายถึงอะไร?",
+            q: "ความแตกต่างหลักระหว่าง HTTP GET และ HTTP POST คืออะไร?",
             c: [
-                "ข้อความจะถูกส่งอย่างน้อย 1 ครั้ง แต่อาจส่งซ้ำได้",
-                "ข้อความจะถูกส่งสำเร็จอย่างแน่นอนเพียง 1 ครั้งเท่านั้น",
-                "ข้อความจะถูกส่งอย่างมากที่สุด 1 ครั้ง โดยไม่มีการตอบรับการรับข้อความ (No Acknowledgment)",
-                "ไม่มีการส่งข้อความเลย"
+                "GET ใช้ส่งข้อมูลปริมาณมากเสมอ ส่วน POST ใช้รับข้อมูลเล็กๆ",
+                "GET ส่งคำขอ/รับข้อมูลผ่าน URL ส่วน POST ส่งข้อมูลภายใน Request Body",
+                "GET ทำงานได้เฉพาะบน WebSocket เท่านั้น",
+                "POST ไม่สามารถใช้งานร่วมกับข้อมูลรูปแบบ JSON ได้"
             ],
             qKey: "q_2"
         },
         {
-            q: "ข้อใดอธิบายความแตกต่างระหว่าง QoS ระดับ 1 และ QoS ระดับ 2 ได้ถูกต้อง?",
+            q: "เมื่อต้องการให้อุปกรณ์หลายเครื่องที่เปิดหน้าเว็บควบคุม ESP32 พร้อมกัน อัปเดตสถานะแบบเรียลไทม์ทันที ควรเลือกใช้เทคโนโลยีใด?",
             c: [
-                "QoS 1 ไม่มีการตอบรับ ส่วน QoS 2 มีการตอบรับ",
-                "QoS 1 รับประกันส่งอย่างน้อย 1 ครั้ง (อาจมีข้อความซ้ำ) ส่วน QoS 2 รับประกันส่งสำเร็จเพียงครั้งเดียวแน่นอน",
-                "QoS 1 ใช้กับวิดีโอ ส่วน QoS 2 ใช้กับข้อความสั้น",
-                "QoS 1 เข้ารหัสข้อมูล ส่วน QoS 2 ไม่เข้ารหัสข้อมูล"
+                "HTTP Polling",
+                "Manual Page Refresh",
+                "WebSocket",
+                "Static HTML Form"
             ],
             qKey: "q_3"
         },
         {
-            q: "ศูนย์กลางในการจัดการและกระจายข้อความในระบบ MQTT คืออะไร และมีหน้าที่อย่างไร?",
+            q: "ในการสร้าง Asynchronous Web Server บน ESP32 นิยมใช้ไลบรารีใดร่วมกับ Arduino IDE?",
             c: [
-                "MQTT Client ทำหน้าที่ประมวลผลกราฟิก",
-                "MQTT Broker ทำหน้าที่รับ กรอง และส่งต่อข้อความไปยัง Subscriber ที่สนใจ",
-                "Router ทำหน้าที่แปลงสัญลักษณ์ข้อความ",
-                "Gateway ทำหน้าที่แปลงสัญญาณอนาล็อกเป็นดิจิทัล"
+                "WiFiClientSecure",
+                "ESPAsyncWebServer",
+                "SoftwareSerial",
+                "EEPROM.h"
             ],
             qKey: "q_4"
         },
         {
-            q: "อุปกรณ์ IoT เช่น ESP32 หรือ ESP8266 ในระบบ MQTT ทำหน้าที่เป็นอะไรได้บ้าง?",
+            q: "ข้อใดคือข้อดีของการแยกไฟล์ HTML, CSS และ JavaScript เก็บไว้ใน LittleFS แทนการเขียนรวมในสเกตช์ C++?",
             c: [
-                "เป็นได้เฉพาะ MQTT Broker เท่านั้น",
-                "เป็นได้เฉพาะ Publisher เท่านั้น",
-                "เป็นได้เฉพาะ Subscriber เท่านั้น",
-                "เป็นได้ทั้ง Publisher และ Subscriber (MQTT Client)"
+                "ทำให้ประมวลผลเร็วขึ้น 100 เท่า",
+                "ช่วยให้โค้ดสะอาด เป็นระเบียบ และจัดการทรัพยากรเว็บได้ง่ายขึ้น",
+                "ไม่ต้องเชื่อมต่อ WiFi ก็สามารถเปิดเว็บได้",
+                "ป้องกันไม่ให้บอร์ด ESP32 รีเซ็ตตัวเอง"
             ],
             qKey: "q_5"
         },
         {
-            q: "การตั้งค่าสถานะ Retain Flag เป็น true ในข้อความ MQTT มีประโยชน์อย่างไร?",
+            q: "โฟลเดอร์ใดในโปรเจกต์ PlatformIO หรือ Arduino IDE ที่ใช้สำหรับเก็บไฟล์เว็บเพื่ออัปโหลดไปยัง LittleFS?",
             c: [
-                "ลบข้อความทันทีหลังจากส่งสำเร็จ",
-                "ให้ Broker บันทึกข้อความล่าสุดของ Topic นั้นไว้ เพื่อส่งให้ Client ใหม่ที่กด Subscribe ทันทีที่เชื่อมต่อ",
-                "บังคับให้เปลี่ยนชื่อ Topic อัตโนมัติ",
-                "ปิดการเชื่อมต่อของ Client ทั้งหมด"
+                "src",
+                "include",
+                "data",
+                "lib"
             ],
             qKey: "q_6"
         },
         {
-            q: "หมายเลขพอร์ตมาตรฐาน (Default Port) สำหรับการเชื่อมต่อ MQTT แบบไม่เข้ารหัส คือพอร์ตใด?",
+            q: "ข้อใดถูกต้องเกี่ยวกับกระบวนการเริ่มต้นเชื่อมต่อของ WebSocket (WebSocket Handshake)?",
             c: [
-                "80",
-                "443",
-                "1883",
-                "8883"
+                "เริ่มต้นส่งข้อมูลผ่าน UDP ก่อนเสมอ",
+                "เริ่มต้นส่งคำขอผ่าน HTTP Request เพื่อยกระดับการเชื่อมต่อเป็น WebSocket",
+                "ต้องป้อนรหัสผ่าน WPA2 ทุกครั้งที่ส่งข้อมูล",
+                "ไม่จำเป็นต้องอ้างอิง IP Address ของ Server"
             ],
             qKey: "q_7"
         },
         {
-            q: "สัญลักษณ์ใดที่ใช้ในการแบ่งระดับชั้น (Hierarchy) ของ MQTT Topic?",
+            q: "หากต้องการส่งข้อมูลเซนเซอร์จาก ESP8266 ไปยังเว็บเบราว์เซอร์แบบส่งฝ่ายเดียวจาก Server ไปยัง Client (One-way Push) ควรเลือกใช้เทคโนโลยีใด?",
             c: [
-                "เครื่องหมายจุด (.)",
-                "เครื่องหมายสแลช (/)",
-                "เครื่องหมายแดช (-)",
-                "เครื่องหมายโคลอน (:)"
+                "Server-Sent Events (SSE)",
+                "HTTP POST",
+                "SPIFFS",
+                "Serial Monitor"
             ],
             qKey: "q_8"
         },
         {
-            q: "หากต้องการส่งค่าอุณหภูมิและความชื้นจากเซนเซอร์ DHT22 บน ESP32 ไปยัง MQTT Broker ข้อใดคือการตั้งชื่อ Topic ที่เป็นระบบและอ่านเข้าใจง่าย?",
+            q: "คุณสมบัติ Wear-Leveling ใน LittleFS มีประโยชน์อย่างไร?",
             c: [
-                "temp_and_hum_data_123",
-                "esp32/dht/temperature และ esp32/dht/humidity",
-                "192.168.1.1/temperature",
-                "sensor.read.all"
+                "เพิ่มความเร็วของสัญญาณ WiFi",
+                "กระจายการเขียนข้อมูลเพื่อยืดอายุการใช้งานของ Flash Memory",
+                "เพิ่มขนาด RAM ให้กับไมโครคอนโทรลเลอร์",
+                "ช่วยให้อ่านค่าจากเซนเซอร์ได้แม่นยำขึ้น"
             ],
             qKey: "q_9"
         },
         {
-            q: "หากต้องการสั่งงานเปิด/ปิดหลอดไฟผ่าน Node-RED ไปยัง ESP32 ตัวบอร์ด ESP32 จะต้องดำเนินการอย่างไรกับ Topic สั่งงาน?",
+            q: "ในการเขียนข้อมูลลงไฟล์ด้วย LittleFS หากต้องการป้องกันไม่ให้ข้อมูลเก่าถูกเขียนทับเมื่อบอร์ดรีสตาร์ท ควรใช้ฟังก์ชันใดตรวจสอบก่อน?",
             c: [
-                "ทำการ Publish ข้อความไปที่ Topic นั้น",
-                "ทำการ Subscribe Topic นั้นเพื่อรอรับข้อความสั่งงาน (\"on\"/\"off\")",
-                "ติดตั้ง Mosquitto Broker ลงใน ESP32",
-                "ลบ Topic นั้นออกจากเซิร์ฟเวอร์"
+                "LittleFS.format()",
+                "LittleFS.begin()",
+                "LittleFS.exists()",
+                "LittleFS.end()"
             ],
             qKey: "q_10"
         },
         {
-            q: "ข้อใดอธิบายบทบาทของ Topic ในระบบสื่อสาร MQTT ได้ถูกต้องที่สุด?",
+            q: "สำหรับการส่งข้อมูลค่าเซนเซอร์จาก ESP32 เข้าสู่บริการ Cloud เช่น ThingSpeak รูปแบบข้อมูลที่นิยมใช้ส่งผ่าน HTTP คืออะไร?",
             c: [
-                "เป็น IP Address ของเครื่อง Broker",
-                "เป็นสายสัญญาณกายภาพที่เชื่อมต่ออุปกรณ์",
-                "เป็นข้อความสตริงที่ใช้ระบุหมวดหมู่ช่องทางข้อมูล เพื่อให้ Broker กรองและกระจายข้อความได้ถูกต้อง",
-                "เป็นรหัสผ่านในการเข้าใช้งานเซิร์ฟเวอร์"
+                "JSON หรือ URL-encoded",
+                "Binary Executable",
+                "HTML File",
+                "Assembly Code"
             ],
             qKey: "q_11"
         },
         {
-            q: "ซอฟต์แวร์ MQTT Broker ยอดนิยมที่นิยมนำมาติดตั้งใช้งานแบบ Local บน Linux / Raspberry Pi คือซอฟต์แวร์ใด?",
+            q: "การใช้งาน Relay Module ร่วมกับ ESP32 ข้อใดคือข้อควรระวังเรื่องฮาร์ดแวร์และความปลอดภัย?",
             c: [
-                "Apache HTTP Server",
-                "Mosquitto MQTT Broker",
-                "MySQL Server",
-                "Nginx Server"
+                "ใช้ Relay ควบคุมไฟ AC ได้โดยไม่ต้องต่อสายไฟ",
+                "การเลือกใช้อุปกรณ์ที่มี Optical Isolation (Optocoupler) เพื่อแยกวงจรกำลังไฟสูงออกจากไมโครคอนโทรลเลอร์",
+                "ห้ามต่อ Relay เข้ากับขา GPIO ใดๆ ทั้งสิ้น",
+                "ต้องจ่ายไฟ 220V AC เข้าขา GPIO ของ ESP32 โดยตรง"
             ],
             qKey: "q_12"
         },
         {
-            q: "คำสั่งใดในระบบปฏิบัติการ Linux Ubuntu/Debian ใช้สำหรับติดตั้ง Mosquitto Broker และ Mosquitto Clients?",
+            q: "เครื่องมือใดใช้สำหรับอัปโหลดไฟล์จากคอมพิวเตอร์ไปยัง LittleFS บน Arduino IDE 2?",
             c: [
-                "sudo apt install -y mosquitto mosquitto-clients",
-                "npm install mosquitto",
-                "pip install mosquitto-broker",
-                "git clone mosquitto-server"
+                "LittleFS Filesystem Uploader Plugin (.vsix)",
+                "Serial Plotter",
+                "Library Manager",
+                "Bootloader Flasher"
             ],
             qKey: "q_13"
         },
         {
-            q: "คำสั่งใดใช้ในการทดสอบ Subscribe ติดตาม Topic บนเครื่อง Local Broker ผ่าน Terminal?",
+            q: "ข้อใดระบุลักษณะของโหมด Normally Open (NO) บน Relay Module ได้ถูกต้อง?",
             c: [
-                "mosquitto_pub -h localhost -t testTopic -m \"Hello\"",
-                "mosquitto_sub -h localhost -t testTopic -u user -P pass",
-                "systemctl status mosquitto",
-                "mosquitto -v"
+                "วงจรจะเปิด (ตัดกระแสไฟ) ในสถานะปกติ และจะต่อวงจรเมื่อมีสัญญาณสั่งงาน",
+                "วงจรจะปิด (ต่อกระแสไฟ) ตลอดเวลาไม่ว่าจะสั่งงานหรือไม่",
+                "ช็อตวงจรลง Ground ทันทีที่จ่ายไฟ",
+                "ใช้งานได้เฉพาะไฟ DC 3.3V เท่านั้น"
             ],
             qKey: "q_14"
         }
@@ -441,7 +440,7 @@
             radio.name = item.qKey;
             radio.value = choice;
             radio.required = true;
-            radio.id = `${item.qKey}_${choice.replace(/\s+/g, '_')}`;
+            radio.id = `${item.qKey}_${choice.replace(/[\s\(\)\/\#\<\>\,\.\"\:\;]+/g, '_')}`;
 
             const label = document.createElement('label');
             label.htmlFor = radio.id;
@@ -466,7 +465,7 @@
         const studentId = this.value.trim();
         if (studentId.length >= 3) {
             idStatusMsg.style.display = 'block';
-            idStatusMsg.style.color = '#0d9488';
+            idStatusMsg.style.color = '#0891b2';
             idStatusMsg.innerText = '🔄 กำลังตรวจสอบรหัสประจำตัว...';
 
             google.script.run
@@ -501,7 +500,7 @@
     const captureShield = document.getElementById('captureShield');
     const watermarkOverlay = document.getElementById('watermarkOverlay');
 
-    // เลเยอร์ลายน้ำ Forensic Watermark
+    // เลเยอร์ลายน้ำ Forensic Watermark (มาตรฐาน IoT-TATC-THERDSAK)
     function updateWatermark() {
         const idVal = studentIdInput.value.trim();
         const nameVal = document.getElementById('studentNameInput').value.trim();
@@ -629,7 +628,7 @@
     // ==========================================
     // ระบบจัดการสำหรับครูผู้สอน (Google Sheets & Code Copy)
     // ==========================================
-    const CURRENT_EXAM_KEY = 'exam_mqtt';
+    const CURRENT_EXAM_KEY = 'exam_webserver';
 
     function extractSheetId(url) {
         if (!url) return '';
@@ -656,8 +655,8 @@
             }
         } else {
             badge.innerText = 'ยังไม่ได้ระบุ Sheet ID';
-            badge.style.background = '#ccfbf1';
-            badge.style.color = '#115e59';
+            badge.style.background = '#e0f2fe';
+            badge.style.color = '#0369a1';
             if (link) link.style.display = 'none';
         }
     }
@@ -779,7 +778,7 @@
         }
 
         navigator.clipboard.writeText(htmlText).then(() => {
-            showCopyAlert(`📄 คัดลอก Index.html เรียบร้อยแล้ว!<br><span style="font-size:0.85em; font-weight:normal;">สร้างไฟล์ Index.html ใน Apps Script แล้วนำไปวางได้ทันที</span>`, '#f0fdfa', '#0f766e', '#99f6e4');
+            showCopyAlert(`📄 คัดลอก Index.html เรียบร้อยแล้ว!<br><span style="font-size:0.85em; font-weight:normal;">สร้างไฟล์ Index.html ใน Apps Script แล้วนำไปวางได้ทันที</span>`, '#eef2ff', '#3730a3', '#c7d2fe');
         }).catch(err => {
             alert('เกิดข้อผิดพลาดในการคัดลอก: ' + err);
         });

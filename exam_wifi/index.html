@@ -2,9 +2,9 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>แบบทดสอบ: ESP32 Web Server & WebSocket</title>
+    <title>แบบทดสอบ: การใช้งาน Wi-Fi บน ESP32</title>
     <!-- รองรับทั้ง Google Apps Script และ Local Server -->
-    <script src="/local-adapter.js"></script>
+    <script src="../local-adapter.js"></script>
     <style>
         * {
             -webkit-touch-callout: none !important; /* ปิดเมนูคัดลอก/แชร์บนมือถือ iOS & Android */
@@ -133,19 +133,19 @@
 </div>
 
 <div style="max-width: 650px; margin: 0 auto 14px auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-    <a href="/" style="color: #007bff; text-decoration: none; font-size: 0.95em; font-weight: bold; display: flex; align-items: center; gap: 5px;">
+    <a href="../" style="color: #007bff; text-decoration: none; font-size: 0.95em; font-weight: bold; display: flex; align-items: center; gap: 5px;">
         <span>← กลับสู่หน้า Dashboard รวมแบบทดสอบ</span>
     </a>
     <div style="display: flex; gap: 8px; align-items: center;">
-        <button type="button" onclick="toggleTeacherPanel()" style="background: #1e293b; color: #818cf8; border: 1px solid #818cf8; padding: 5px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+        <button type="button" onclick="toggleTeacherPanel()" style="background: #1e293b; color: #38bdf8; border: 1px solid #38bdf8; padding: 5px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
             <span>👨‍🏫 ส่วนของครูผู้สอน (Google Sheet & โค้ด)</span>
         </button>
-        <span style="font-size: 0.85em; color: #666; background: #e9ecef; padding: 4px 8px; border-radius: 4px;">ESP32 WebSocket</span>
+        <span style="font-size: 0.85em; color: #666; background: #e9ecef; padding: 4px 8px; border-radius: 4px;">ESP32 Wi-Fi</span>
     </div>
 </div>
 
 <!-- กล่องส่วนของครูผู้สอนสำหรับตั้งค่า Google Sheets และคัดลอกโค้ด -->
-<div id="teacherPanel" style="max-width: 650px; margin: 0 auto 20px auto; background: #ffffff; border: 2px solid #818cf8; border-radius: 12px; padding: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: none;">
+<div id="teacherPanel" style="max-width: 650px; margin: 0 auto 20px auto; background: #ffffff; border: 2px solid #38bdf8; border-radius: 12px; padding: 22px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: none;">
     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
         <div style="font-weight: bold; color: #0f172a; font-size: 1.05em; display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 1.3em;">👨‍🏫</span>
@@ -160,14 +160,14 @@
         </label>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <input type="text" id="teacherSheetUrl" placeholder="วางลิงก์ เช่น https://docs.google.com/spreadsheets/d/1BxiMVs.../edit" style="flex: 1; min-width: 260px; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95em;">
-            <button type="button" onclick="saveSheetUrl()" style="background: #4f46e5; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <button type="button" onclick="saveSheetUrl()" style="background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                 <span>💾 เซฟลิงก์</span>
             </button>
         </div>
 
         <div id="sheetStatusBox" style="margin-top: 10px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.88em; color: #475569; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <span id="sheetIdDisplay">สถานะ: ยังไม่ได้บันทึกลิงก์ Google Sheets</span>
-            <a id="sheetExternalLink" href="#" target="_blank" style="display: none; color: #4f46e5; text-decoration: none; font-weight: bold;">↗️ เปิด Google Sheets ของคุณ</a>
+            <a id="sheetExternalLink" href="#" target="_blank" style="display: none; color: #2563eb; text-decoration: none; font-weight: bold;">↗️ เปิด Google Sheets ของคุณ</a>
         </div>
     </div>
 
@@ -185,7 +185,7 @@
 </div>
 
 <div class="form-container">
-    <h2>แบบทดสอบ: ESP32 Web Server & WebSocket</h2>
+    <h2>แบบทดสอบ: การใช้งาน Wi-Fi บน ESP32</h2>
     
     <form action="" method="POST" id="quizForm">
         
@@ -219,21 +219,81 @@
 <script>
     // ข้อมูลข้อสอบ 15 ข้อต้นแบบ
     const quizData = [
-        { q: "ข้อใดอธิบายความหมายของ WebSocket ได้ถูกต้องที่สุด?", c: ["เป็นการสื่อสารที่ค้างไว้ตลอดเวลา ทำให้ส่งข้อมูลสวนกันได้สองทาง", "เป็นการส่งอีเมลผ่าน ESP32", "เป็นวิธีเชื่อมต่อกับ Router เท่านั้น", "เป็นโปรโตคอลที่ต้องส่ง Request ทุกครั้งที่ต้องการข้อมูล"], qKey: "q_0" },
-        { q: "ความแตกต่างหลักในการอัปเดตข้อมูลระหว่าง Web Server (HTTP) และ WebSocket คืออะไร?", c: ["HTTP อัปเดตอัตโนมัติ แต่ WebSocket ต้องรีเฟรช", "ทั้งคู่ต้องรีเฟรชหน้าจอเหมือนกัน", "WebSocket อัปเดตข้อมูลได้เรียลไทม์โดยไม่ต้องรีเฟรชหน้าจอ", "HTTP ใช้ทรัพยากรน้อยกว่าในการอัปเดตเรียลไทม์"], qKey: "q_1" },
-        { q: "ในการเริ่มต้นการเชื่อมต่อ (Handshake) ของ WebSocket จะเริ่มต้นด้วยโปรโตคอลใด?", c: ["FTP", "HTTP", "MQTT", "UDP"], qKey: "q_2" },
-        { q: "คำว่า Full Duplex ใน WebSocket หมายถึงอะไร?", c: ["การรับส่งข้อมูลได้ทีละฝั่งสลับกัน", "การเชื่อมต่อได้สูงสุดเพียง 2 เครื่อง", "ทั้ง Client และ Server รับส่งข้อมูลพร้อมกันได้ทุกเมื่อ", "การส่งข้อมูลด้วยความเร็วสองเท่า"], qKey: "q_3" },
-        { q: "หากต้องการประหยัด SRAM บน ESP32 ควรเก็บไฟล์ HTML ไว้ที่ใด?", c: ["EEPROM", "Flash Memory (PROGMEM)", "SD Card เท่านั้น", "RAM ของเบราว์เซอร์"], qKey: "q_4" },
-        { q: "Library ใดที่จำเป็นต้องใช้ร่วมกับ ESPAsyncWebServer เพื่อสร้าง WebSocket?", c: ["DallasTemperature.h", "AsyncTCP.h", "LiquidCrystal_I2C.h", "OneWire.h"], qKey: "q_5" },
-        { q: "URL ของ WebSocket ในฝั่ง Client จะขึ้นต้นด้วยอะไร?", c: ["http://", "ftp://", "ws://", "https://"], qKey: "q_6" },
-        { q: "ข้อใดคือข้อเสียหลักของ HTTP Polling?", c: ["ทำให้ข้อมูลผิดพลาด", "สร้างภาระ (Overhead) ให้เซิร์ฟเวอร์และโหลดทรัพยากรซ้ำซ้อน", "ใช้ไม่ได้บนมือถือ", "ESP32 จะตัดการทำงานอัตโนมัติ"], qKey: "q_7" },
-        { q: "ฟังก์ชัน cleanupClients() ใน WebSocket Server มีไว้เพื่ออะไร?", c: ["ล้างประวัติการเข้าชม", "ลบ Client ที่ไม่ทำงานแล้วเพื่อคืนทรัพยากร", "ตรวจสอบเซนเซอร์", "ล้างหน้าจอ Serial Monitor"], qKey: "q_8" },
-        { q: "Event ใดบนเซิร์ฟเวอร์ที่เกิดขึ้นเมื่อมี Client ใหม่เชื่อมต่อ WebSocket?", c: ["WS_EVT_DISCONNECT", "WS_EVT_DATA", "WS_EVT_CONNECT", "WS_EVT_ERROR"], qKey: "q_9" },
-        { q: "Tag ใดใช้สำหรับรีเฟรชหน้าเว็บ HTTP ทุก 1 วินาที?", c: ["<meta http-equiv='refresh' content='1'>", "<title>", "<style>", "<script>"], qKey: "q_10" },
-        { q: "ข้อดีของ AJAX คืออะไร?", c: ["ไม่ต้องต่ออินเทอร์เน็ต", "อัปเดตเฉพาะส่วนที่ต้องการโดยไม่ต้องโหลดหน้าใหม่ทั้งหมด", "เพิ่มความแรง Wi-Fi", "ทำให้ ESP32 ทำงานเร็วขึ้น"], qKey: "q_11" },
-        { q: "รูปแบบข้อมูลที่นิยมส่งผ่าน WebSocket สำหรับหลายตัวแปรคือ?", c: ["Plain Text", "JSON String", "Binary", "Image File"], qKey: "q_12" },
-        { q: "พอร์ตมาตรฐานสำหรับ Web Server (HTTP) คือพอร์ตใด?", c: ["21", "80", "1883", "443"], qKey: "q_13" },
-        { q: "งานประเภทใดที่ WebSocket เหมาะสมที่สุด?", c: ["หน้าตั้งค่าอุปกรณ์", "การแสดงข้อมูลเซนเซอร์แบบกราฟเรียลไทม์", "หน้าข้อความคู่มือ", "การเก็บข้อมูลถาวร"], qKey: "q_14" }
+        {
+            q: "โหมดการทำงานใดที่ ESP32 ทำหน้าที่เป็นเหมือนอุปกรณ์ลูกข่ายเพื่อเชื่อมต่อกับ Router?",
+            c: ["Access Point (AP)", "Station (STA)", "Web Server", "Dual Mode"],
+            qKey: "q_0"
+        },
+        {
+            q: "เมื่อตั้งค่า ESP32 เป็น Access Point (AP) โดยปกติจะมี IP Address เริ่มต้นคืออะไร?",
+            c: ["192.168.1.1", "10.0.0.1", "192.168.4.1", "172.16.0.1"],
+            qKey: "q_1"
+        },
+        {
+            q: "คำสั่งใดใช้สำหรับการเชื่อมต่อ Wi-Fi ในโหมด Station?",
+            c: ["WiFi.softAP(ssid, password)", "WiFi.begin(ssid, password)", "WiFi.connect(ssid, password)", "WiFi.config(ssid, password)"],
+            qKey: "q_2"
+        },
+        {
+            q: "RSSI (Received Signal Strength Indicator) ใช้สำหรับวัดค่าอะไร?",
+            c: ["ความเร็วในการรับส่งข้อมูล", "ความเข้มของสัญญาณวิทยุที่ได้รับ", "จำนวนอุปกรณ์ที่เชื่อมต่อ", "ระยะเวลาที่เชื่อมต่อได้"],
+            qKey: "q_3"
+        },
+        {
+            q: "ค่า RSSI ใดต่อไปนี้แสดงถึงสัญญาณ Wi-Fi ที่มีความแรงมากที่สุด?",
+            c: ["-30 dBm", "-50 dBm", "-70 dBm", "-90 dBm"],
+            qKey: "q_4"
+        },
+        {
+            q: "MAC Address ของ ESP32 มีลักษณะเฉพาะอย่างไร?",
+            c: ["เป็นหมายเลข IP ที่เปลี่ยนไปตาม Router", "เป็นหมายเลขประจำตัวฮาร์ดแวร์ที่ไม่ซ้ำกัน", "เป็นชื่อที่ผู้ใช้ตั้งขึ้นเองได้อิสระ", "เป็นรหัสผ่านสำหรับเข้าใช้งาน Wi-Fi"],
+            qKey: "q_5"
+        },
+        {
+            q: "Hostname เริ่มต้นของ ESP32 จากโรงงานคือชื่ออะไร?",
+            c: ["esp32-device", "arduino-esp32", "espressif", "smart-home-node"],
+            qKey: "q_6"
+        },
+        {
+            q: "หากต้องการกำหนด IP Address คงที่ (Static IP) ให้กับ ESP32 ต้องใช้คำสั่งใด?",
+            c: ["WiFi.setIP()", "WiFi.localIP()", "WiFi.config()", "WiFi.softAPConfig()"],
+            qKey: "q_7"
+        },
+        {
+            q: "สถานะ (Status) ใดที่บ่งบอกว่า ESP32 เชื่อมต่อกับเครือข่าย Wi-Fi สำเร็จแล้ว?",
+            c: ["WL_IDLE_STATUS", "WL_DISCONNECTED", "WL_CONNECTED", "WL_CONNECT_FAILED"],
+            qKey: "q_8"
+        },
+        {
+            q: "ข้อใดคือข้อดีของการใช้ Wi-Fi Events ในการจัดการการเชื่อมต่อใหม่?",
+            c: ["ทำให้สัญญาณ Wi-Fi แรงขึ้น", "ไม่ต้องเขียนโค้ดตรวจสอบสถานะใน loop() ตลอดเวลา", "ป้องกันการโดนแฮกข้อมูล", "ช่วยประหยัดหน่วยความจำ Flash"],
+            qKey: "q_9"
+        },
+        {
+            q: "คำสั่งใดใช้สำหรับพยายามเชื่อมต่อกับ Access Point เดิมที่เคยเชื่อมต่อไว้ก่อนหน้า?",
+            c: ["WiFi.reconnect()", "WiFi.retry()", "WiFi.begin()", "WiFi.status()"],
+            qKey: "q_10"
+        },
+        {
+            q: "Event ใดจะเกิดขึ้นเมื่อ ESP32 ในโหมด Station หลุดจากการเชื่อมต่อกับ Router?",
+            c: ["ARDUINO_EVENT_WIFI_STA_CONNECTED", "ARDUINO_EVENT_WIFI_STA_GOT_IP", "ARDUINO_EVENT_WIFI_STA_DISCONNECTED", "ARDUINO_EVENT_WIFI_READY"],
+            qKey: "q_11"
+        },
+        {
+            q: "ในการตั้งค่า Access Point (soft-AP) รหัสผ่านที่กำหนดต้องมีอย่างน้อยกี่ตัวอักษร?",
+            c: ["4 ตัวอักษร", "6 ตัวอักษร", "8 ตัวอักษร", "10 ตัวอักษร"],
+            qKey: "q_12"
+        },
+        {
+            q: "Library พื้นฐานที่จำเป็นต้อง Include ทุกครั้งเมื่อต้องการใช้งาน Wi-Fi บน ESP32 คืออะไร?",
+            c: ["ESP8266WiFi.h", "WiFi.h", "WiFiClient.h", "ESP32WiFi.h"],
+            qKey: "q_13"
+        },
+        {
+            q: "ฟังก์ชัน WiFi.localIP() ใช้สำหรับทำหน้าที่อะไรในโหมด Station?",
+            c: ["เปลี่ยนหมายเลข IP Address", "อ่านค่า IP Address ที่ได้รับจาก Router", "ค้นหาเครือข่าย Wi-Fi รอบตัว", "ตรวจสอบความแรงของสัญญาณ"],
+            qKey: "q_14"
+        }
     ];
 
     function shuffle(array) {
@@ -246,7 +306,7 @@
         return array;
     }
 
-    // ฟังก์ชันสุ่มเรียงลำดับคำถามและสร้างตัวเลือก
+    // ฟังก์ชันสุ่มเรียงลำดับคำถามและสร้างตัวเลือก (ไม่แสดงเลขข้อเพื่อความปลอดภัย)
     function renderQuiz() {
         const container = document.getElementById('questionsContainer');
         if (!container) return;
@@ -428,7 +488,7 @@
     }
     updateWatermark();
 
-    // 5. ตรวจจับการสลับแท็บ / สลับหน้าจอ (Visibility Change)
+    // 7. ตรวจจับการสลับแท็บ / สลับหน้าจอ (Visibility Change)
     document.addEventListener("visibilitychange", function() {
         if (document.hidden) {
             cheatCount++;
@@ -594,7 +654,7 @@
     // =========================================================================
     // ฟังก์ชันส่วนของครูผู้สอน: เซฟลิงก์ Google Sheets & คัดลอกโค้ด Deploy
     // =========================================================================
-    const CURRENT_EXAM_KEY = 'exam_websocket';
+    const CURRENT_EXAM_KEY = 'exam_wifi';
 
     function extractSheetId(input) {
         if (!input) return '';

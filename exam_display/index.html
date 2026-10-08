@@ -2,9 +2,9 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>แบบทดสอบ: การติดตั้งใช้งาน Arduino IDE, VS Code PlatformIO และการอัปโหลดโค้ด ESP32/ESP8266</title>
+    <title>แบบทดสอบ: OLED, LCD, Library, คำสั่ง และการเชื่อมต่อ</title>
     <!-- รองรับทั้ง Google Apps Script และ Local Server -->
-    <script src="/local-adapter.js"></script>
+    <script src="../local-adapter.js"></script>
     <style>
         * {
             -webkit-touch-callout: none !important; /* ปิดเมนูคัดลอก/แชร์บนมือถือ iOS & Android */
@@ -68,8 +68,8 @@
             padding-top: 18%;
         }
         .form-container { max-width: 650px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h2 { color: #0284c7; border-bottom: 2px solid #0284c7; padding-bottom: 10px; margin-top: 0; }
-        .question-block { background: #f8f9fa; padding: 20px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #0284c7; }
+        h2 { color: #7c3aed; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; margin-top: 0; }
+        .question-block { background: #f8f9fa; padding: 20px; margin-bottom: 20px; border-radius: 8px; border-left: 5px solid #7c3aed; }
         .question-title { font-weight: bold; margin-bottom: 12px; font-size: 1.1em; line-height: 1.5; }
         
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
@@ -80,8 +80,8 @@
         .option-item { margin: 10px 0; display: flex; align-items: center; }
         .option-item input { margin-right: 12px; cursor: pointer; transform: scale(1.2); }
         .option-item label { cursor: pointer; width: 100%; font-size: 1em; }
-        .submit-btn { background-color: #0284c7; color: white; padding: 14px 24px; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.3s; margin-top: 10px; }
-        .submit-btn:hover { background-color: #0369a1; }
+        .submit-btn { background-color: #7c3aed; color: white; padding: 14px 24px; border: none; border-radius: 6px; font-size: 1.1em; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.3s; margin-top: 10px; }
+        .submit-btn:hover { background-color: #6d28d9; }
         input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1em; }
 
         /* หน้าจอล็อกฉากหลังมืดทึบ */
@@ -103,15 +103,15 @@
         .teacher-panel {
             max-width: 650px;
             margin: 0 auto 20px auto;
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
+            background: #faf5ff;
+            border: 1px solid #e9d5ff;
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .teacher-panel h3 {
             margin: 0 0 12px 0;
-            color: #0369a1;
+            color: #6d28d9;
             font-size: 1.1em;
             display: flex;
             align-items: center;
@@ -125,12 +125,12 @@
         .sheet-input-group input {
             flex: 1;
             padding: 10px 14px;
-            border: 1px solid #38bdf8;
+            border: 1px solid #c084fc;
             border-radius: 6px;
             font-size: 0.92em;
         }
         .save-sheet-btn {
-            background-color: #0284c7;
+            background-color: #7c3aed;
             color: white;
             border: none;
             padding: 10px 18px;
@@ -142,12 +142,12 @@
             transition: background 0.2s;
         }
         .save-sheet-btn:hover {
-            background-color: #0369a1;
+            background-color: #6d28d9;
         }
         .portal-nav-btn {
             display: inline-block;
             margin-bottom: 16px;
-            color: #0284c7;
+            color: #7c3aed;
             text-decoration: none;
             font-weight: bold;
             font-size: 0.92em;
@@ -188,7 +188,7 @@
 <!-- ส่วนจัดการสำหรับครูผู้สอน (Google Sheets & Source Code) -->
 <div class="teacher-panel">
     <h3>👨‍🏫 จัดการแบบทดสอบสำหรับครูผู้สอน (Google Sheets & Script)</h3>
-    <p style="margin: 0 0 10px 0; font-size: 0.88em; color: #0369a1;">
+    <p style="margin: 0 0 10px 0; font-size: 0.88em; color: #6d28d9;">
         วางลิงก์ Google Sheets ของคุณ เพื่อใช้เป็นฐานข้อมูลบันทึกคะแนนและประวัติการสอบ:
     </p>
     
@@ -198,9 +198,9 @@
     </div>
     
     <div id="sheetStatusInfo" style="font-size: 0.86em; color: #4b5563; margin-bottom: 8px;">
-        <span id="sheetIdBadge" style="background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 4px; font-family: monospace;">ยังไม่ได้ระบุ Sheet ID</span>
+        <span id="sheetIdBadge" style="background: #f3e8ff; color: #6d28d9; padding: 2px 8px; border-radius: 4px; font-family: monospace;">ยังไม่ได้ระบุ Sheet ID</span>
         <div style="margin-top: 6px;">
-            <a id="sheetExternalLink" href="#" target="_blank" style="display: none; color: #0284c7; text-decoration: none; font-weight: bold;">↗️ เปิด Google Sheets ของคุณ</a>
+            <a id="sheetExternalLink" href="#" target="_blank" style="display: none; color: #7c3aed; text-decoration: none; font-weight: bold;">↗️ เปิด Google Sheets ของคุณ</a>
         </div>
     </div>
 
@@ -209,7 +209,7 @@
         <button type="button" onclick="copyCodeGsWithSheetId()" style="background: #059669; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(5,150,105,0.25); font-size: 0.92em;">
             <span>📋 คัดลอก Code.gs (ใส่ Sheet ID แล้ว)</span>
         </button>
-        <button type="button" onclick="copyIndexHtmlCode()" style="background: #0284c7; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(2,132,199,0.25); font-size: 0.92em;">
+        <button type="button" onclick="copyIndexHtmlCode()" style="background: #7c3aed; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 2px 6px rgba(124,58,237,0.25); font-size: 0.92em;">
             <span>📄 คัดลอก Index.html</span>
         </button>
     </div>
@@ -218,13 +218,13 @@
 </div>
 
 <div class="form-container">
-    <h2>แบบทดสอบ: การติดตั้งใช้งาน Arduino IDE, VS Code PlatformIO และการอัปโหลดโค้ด ESP32/ESP8266</h2>
+    <h2>แบบทดสอบ: OLED, LCD, Library, คำสั่ง และการเชื่อมต่อ</h2>
     
     <form action="" method="POST" id="quizForm">
         
         <!-- ส่วนข้อมูลผู้กรอกส่วนตัวก่อนเริ่มทำโจทย์ -->
-        <div class="question-block" style="border-left: 5px solid #0284c7;">
-            <div class="question-title" style="color: #0284c7; margin-bottom: 15px;">📝 ข้อมูลผู้เข้าสอบ</div>
+        <div class="question-block" style="border-left: 5px solid #7c3aed;">
+            <div class="question-title" style="color: #7c3aed; margin-bottom: 15px;">📝 ข้อมูลผู้เข้าสอบ</div>
             <div class="info-grid">
                 <div class="info-group">
                     <label for="studentIdInput">เลขประจำตัว (ID)</label>
@@ -253,152 +253,152 @@
     // ข้อมูลข้อสอบ 15 ข้อต้นแบบ
     const quizData = [
         {
-            q: "โปรแกรม Arduino IDE ทำหน้าที่เปรียบเสมือนสิ่งใดในการเขียนโปรแกรมควบคุมไมโครคอนโทรลเลอร์?",
+            q: "จอ OLED SSD1306 ขนาด 0.96 นิ้ว ที่นิยมใช้กับ ESP32 มีความละเอียดหน้าจอกี่พิกเซล?",
             c: [
-                "ระบบปฏิบัติการ (Operating System)",
-                "ล่ามแปลงภาษา C/C++ ให้เป็นภาษาเครื่อง (.hex/binary)",
-                "ตัวจำลองการทำงานของฮาร์ดแวร์ (Simulator)",
-                "แหล่งเก็บข้อมูลบนระบบคลาวด์ (Cloud Storage)"
+                "16x2 พิกเซล",
+                "128x32 พิกเซล",
+                "128x64 พิกเซล",
+                "20x4 พิกเซล"
             ],
             qKey: "q_0"
         },
         {
-            q: "หากต้องการใช้งาน VS Code ร่วมกับ PlatformIO IDE ในการพัฒนาโปรเจกต์ขนาดใหญ่ จะต้องติดตั้งส่วนขยาย (Extension) ใดใน VS Code?",
+            q: "ข้อใดคือคุณสมบัติเด่นของจอแสดงผล OLED เมื่อเปรียบเทียบกับจอ LCD แบบทั่วไป?",
             c: [
-                "Arduino Classic",
-                "C/C++ Runner",
-                "PlatformIO IDE",
-                "ESP32 Flash Tool"
+                "ต้องใช้ไฟเลี้ยงหลอด Backlight ตลอดเวลา",
+                "พิกเซลสามารถเปล่งแสงได้เองโดยไม่ต้องมีหลอด Backlight",
+                "บริโภคพลังงานสูงกว่าจอ LCD ทุกกรณี",
+                "แสดงผลได้เฉพาะตัวอักษรภาษาอังกฤษเท่านั้น"
             ],
             qKey: "q_1"
         },
         {
-            q: "ในการโปรแกรม ESP32/ESP8266 ด้วย PlatformIO บนระบบปฏิบัติการ Windows จำเป็นต้องติดตั้งซอฟต์แวร์ภาษาใดในเครื่องคอมพิวเตอร์ก่อน?",
+            q: "ขาสัญญาณ I2C พื้นฐาน (Default) สำหรับบอร์ด ESP32 ในการเชื่อมต่อ SDA และ SCL คือ GPIO ใดตามลำดับ?",
             c: [
-                "Java (เวอร์ชัน 1.8 ขึ้นไป)",
-                "Python (เวอร์ชัน 3.5 ขึ้นไป)",
-                "Node.js",
-                "Ruby"
+                "GPIO 4 (SDA), GPIO 5 (SCL)",
+                "GPIO 18 (SDA), GPIO 19 (SCL)",
+                "GPIO 21 (SDA), GPIO 22 (SCL)",
+                "GPIO 23 (SDA), GPIO 5 (SCL)"
             ],
             qKey: "q_2"
         },
         {
-            q: "การติดตั้งบอร์ด ESP32 หรือ ESP8266 ในโปรแกรม Arduino IDE จะต้องนำ URL ของตัวจัดการบอร์ดไปวางไว้ที่เมนูใดก่อน?",
+            q: "ค่า I2C Address เริ่มต้นที่นิยมใช้สำหรับจอ OLED SSD1306 และจอ I2C LCD (ชิป PCF8574) คือค่าใดตามลำดับ?",
             c: [
-                "File > Preferences ในช่อง \"Additional Boards Manager URLs\"",
-                "Tools > Board > Boards Manager",
-                "Sketch > Include Library > Add .ZIP Library",
-                "Help > About Arduino"
+                "0x27 และ 0x3C",
+                "0x3C และ 0x27",
+                "0x3F และ 0x3D",
+                "0x00 และ 0xFF"
             ],
             qKey: "q_3"
         },
         {
-            q: "เมื่อเพิ่ม URL ในช่อง Preferences เรียบร้อยแล้ว ขั้นตอนถัดไปในการติดตั้งแพ็กเกจบอร์ด ESP32 บน Arduino IDE คือข้อใด?",
+            q: "การเขียนโปรแกรมควบคุมจอ OLED SSD1306 ด้วย Arduino IDE จำเป็นต้องติดตั้ง Library หลักใดบ้าง?",
             c: [
-                "เปิด Serial Monitor แล้วพิมพ์คำสั่ง install esp32",
-                "ไปที่เมนู Tools > Board > Boards Manager แล้วค้นหาคำว่า \"esp32\" เพื่อกด Install",
-                "ไปที่เมนู File > Open แล้วเลือกไฟล์ esp32.json",
-                "กดปุ่ม Upload บนแถบเครื่องมือทันที"
+                "Adafruit_SSD1306 และ Adafruit_GFX",
+                "LiquidCrystal_I2C และ Wire",
+                "Adafruit_Sensor และ DHT",
+                "SSD1306_Simple และ GFXFont"
             ],
             qKey: "q_4"
         },
         {
-            q: "ไฟล์โครงสร้างหลักที่ใช้ในการกำหนดค่าคอนฟิกของโปรเจกต์ PlatformIO เช่น การเลือกบอร์ด แพลตฟอร์ม และเฟรมเวิร์ก คือไฟล์ใด?",
+            q: "ในการสร้างออบเจกต์ Adafruit_SSD1306 display(128, 64, &Wire, -1); พารามิเตอร์ -1 มีความหมายอย่างไร?",
             c: [
-                "main.cpp",
-                "platformio.ini",
-                "settings.json",
-                "Arduino.h"
+                "ไม่ใช้อินเทอร์เฟซ I2C",
+                "จอแสดงผลไม่มีขา Reset แยกต่างหาก (ใช้ขารีเซ็ตร่วมกับไมโครคอนโทรลเลอร์)",
+                "กำหนดความสว่างของหน้าจอให้ต่ำที่สุด",
+                "ปิดการใช้งานฟังก์ชันเลื่อนข้อความ"
             ],
             qKey: "q_5"
         },
         {
-            q: "ในโปรเจกต์ PlatformIO ไฟล์โค้ดหลักภาษา C++ ที่ใช้เขียนฟังก์ชัน setup() และ loop() จะถูกจัดเก็บไว้ในโฟลเดอร์ใดและชื่อไฟล์อะไร?",
+            q: "คำสั่งใดของ Library Adafruit_SSD1306 ที่จำเป็นต้องเรียกใช้หลังจากวาดภาพหรือเขียนข้อความ เพื่อให้ข้อมูลแสดงผลบนหน้าจอ OLED?",
             c: [
-                "โฟลเดอร์ include ไฟล์ header.h",
-                "โฟลเดอร์ src ไฟล์ main.cpp",
-                "โฟลเดอร์ lib ไฟล์ library.cpp",
-                "โฟลเดอร์ build ไฟล์ firmware.bin"
+                "display.clearDisplay();",
+                "display.begin();",
+                "display.display();",
+                "display.show();"
             ],
             qKey: "q_6"
         },
         {
-            q: "ในการเขียนโค้ดสำหรับ Arduino บน PlatformIO IDE บรรทัดแรกของไฟล์ main.cpp จำเป็นต้องระบุคำสั่งใดเสมอเพื่อใช้งานฟังก์ชันมาตรฐานของ Arduino?",
+            q: "ในการใช้งานจอ I2C LCD ร่วมกับ Library LiquidCrystal_I2C คำสั่งใดใช้สำหรับเปิดไฟพ้นหลัง (Backlight)?",
             c: [
-                "#include <WiFi.h>",
-                "#include <Arduino.h>",
-                "#include <PlatformIO.h>",
-                "#define ARDUINO_MAIN"
+                "lcd.init();",
+                "lcd.backlight();",
+                "lcd.clear();",
+                "lcd.setCursor(0,0);"
             ],
             qKey: "q_7"
         },
         {
-            q: "ปุ่มเครื่องมือ \"Verify/Compile\" บน Arduino IDE หรือไอคอนรูปเครื่องหมายถูก (Checkmark) มีหน้าที่อะไร?",
+            q: "คำสั่ง lcd.setCursor(0, 1); สำหรับจอ LCD 16x2 มีผลอย่างไรต่อตำแหน่งเคอร์เซอร์?",
             c: [
-                "อัปโหลดโค้ดลงบอร์ดไมโครคอนโทรลเลอร์ทันที",
-                "ตรวจสอบความถูกต้องของโค้ดและคอมไพล์เป็นภาษาเครื่องโดยยังไม่อัปโหลดลงบอร์ด",
-                "ลบข้อมูลทั้งหมดในหน่วยความจำ Flash",
-                "รีเซ็ตการทำงานของบอร์ดไมโครคอนโทรลเลอร์"
+                "ย้ายเคอร์เซอร์ไปที่คอลัมน์แรก แถวแรก",
+                "ย้ายเคอร์เซอร์ไปที่คอลัมน์แรก แถวที่สอง",
+                "ย้ายเคอร์เซอร์ไปที่คอลัมน์ที่สอง แถวแรก",
+                "ย้ายเคอร์เซอร์ไปที่คอลัมน์ที่สอง แถวที่สอง"
             ],
             qKey: "q_8"
         },
         {
-            q: "หากพบข้อผิดพลาด \"A fatal error occurred: Failed to connect to ESP32: Timed out...\" ขณะอัปโหลดโปรแกรมลงบอร์ด ESP32 ควรแก้ไขอย่างไร?",
+            q: "จอ LCD 16x2 สามารถสร้างและจัดเก็บอักขระพิเศษ (Custom Characters) ลงใน CGRAM ได้สูงสุดกี่ตัวอักษรพร้อมกัน?",
             c: [
-                "เปลี่ยนสาย USB หรือเปลี่ยนคอมพิวเตอร์ทันที",
-                "กดปุ่ม BOOT (หรือ IO0) บนบอร์ดค้างไว้ขณะที่โปรแกรมเริ่มการอัปโหลด (Connecting...)",
-                "ลบโปรแกรม Arduino IDE แล้วติดตั้งใหม่",
-                "แก้ไขโค้ดในฟังก์ชัน loop() ใหม่ทั้งหมด"
+                "4 ตัว",
+                "8 ตัว",
+                "16 ตัว",
+                "32 ตัว"
             ],
             qKey: "q_9"
         },
         {
-            q: "สัญลักษณ์หรือไอคอนใดบนแถบสถานะด้านล่างของ PlatformIO ที่ใช้สำหรับสั่งคอมไพล์โปรเจกต์ (Build/Compile)?",
+            q: "คำสั่งใดใช้สำหรับสั่งให้ข้อความบนจอ OLED SSD1306 เลื่อนจากซ้ายไปขวา?",
             c: [
-                "ไอคอนรูปบ้าน (Home)",
-                "ไอคอนรูปเครื่องหมายถูก (Checkmark)",
-                "ไอคอนรูปลูกศรชี้ไปทางขวา (Upload)",
-                "ไอคอนรูปถังขยะ (Clean)"
+                "display.startscrollright(0x00, 0x0F);",
+                "display.startscrollleft(0x00, 0x0F);",
+                "lcd.scrollDisplayLeft();",
+                "lcd.scrollDisplayRight();"
             ],
             qKey: "q_10"
         },
         {
-            q: "บน Arduino IDE การเลือกพอร์ตสื่อสารที่เชื่อมต่ออยู่กับบอร์ด ESP32/ESP8266 สามารถตรวจสอบและเลือกได้ที่เมนูใด?",
+            q: "อุปกรณ์ใดบนบอร์ด I2C LCD Adapter ที่ใช้สำหรับปรับระดับความคมชัด (Contrast) ของตัวอักษร?",
             c: [
-                "Tools > Port",
-                "File > Examples",
-                "Sketch > Show Sketch Folder",
-                "Tools > Programmer"
+                "สวิตช์ DIP Switch 3 ตำแหน่ง",
+                "ตัวต้านทานปรับค่าได้ (Potentiometer / Trimpot)",
+                "จัมเปอร์เลือกระดับแรงดัน 3.3V/5V",
+                "คริสตัลไทม์มิ่ง"
             ],
             qKey: "q_11"
         },
         {
-            q: "ชิปแปลงสัญญาณ USB-to-UART Bridge ที่นิยมใช้บนบอร์ด ESP32/ESP8266 เช่น CP2102 หรือ CH340 มีความสำคัญอย่างไรก่อนเริ่มใช้งานอัปโหลดโค้ด?",
+            q: "หากต้องการล้างข้อมูลทั้งหมดในบัฟเฟอร์หน้าจอ OLED เพื่อเตรียมเขียนข้อความใหม่ ต้องใช้คำสั่งใด?",
             c: [
-                "ต้องทำการติดตั้งไดรเวอร์ (Driver) เพื่อให้คอมพิวเตอร์มองเห็นพอร์ตสื่อสาร (COM Port)",
-                "ไม่ต้องติดตั้งอะไรเลย เพราะชิปนี้ประมวลผลโค้ด C++ ได้ด้วยตัวเอง",
-                "ต้องทำหน้าที่เป็นเสาอากาศรับสัญญาณ WiFi",
-                "ใช้สำหรับจ่ายไฟเลี้ยง 12V ให้บอร์ดเท่านั้น"
+                "display.stopscroll();",
+                "display.clearDisplay();",
+                "display.cp437(false);",
+                "display.reset();"
             ],
             qKey: "q_12"
         },
         {
-            q: "การตั้งค่าอัตราเร็วในการสื่อสารของ Serial Monitor ให้ตรงกับที่กำหนดในโค้ด Serial.begin(115200); ทำเพื่อวัตถุประสงค์ใด?",
+            q: "ในการแปลงไฟล์รูปภาพบิตแมปเป็น C Array เพื่อนำไปแสดงผลด้วยคำสั่ง display.drawBitmap() บนจอ OLED นิยมใช้เครื่องมือใดตามบทเรียน?",
             c: [
-                "เพิ่มความเร็วในการคอมไพล์โปรแกรม",
-                "เพื่อให้แสดงผลข้อความออกทางหน้าจอ Serial Monitor ได้อย่างถูกต้อง อ่านไม่เป็นขยะตัวอักษร",
-                "เพื่อให้บอร์ดประมวลผลคำสั่งได้เร็วขึ้น 10 เท่า",
-                "เพื่อเปิดระบบรับส่งข้อมูลแบบไร้สาย"
+                "Adobe Illustrator",
+                "LCD Image Converter",
+                "Fritzing",
+                "AutoCAD"
             ],
             qKey: "q_13"
         },
         {
-            q: "คำสั่งหรือฟังก์ชันใดใน PlatformIO ที่ใช้สำหรับกำหนดค่า Baud Rate ของ Serial Monitor ในไฟล์ platformio.ini?",
+            q: "หากต่อสายจอ I2C LCD แล้วหน้าจอไม่แสดงผล ควรใช้สเกตช์ (Sketch) ใดในการตรวจสอบหาค่าตำแหน่ง Address ของอุปกรณ์บนบัส I2C?",
             c: [
-                "upload_speed = 115200",
-                "monitor_speed = 115200",
-                "baud_rate = 115200",
-                "serial_baud = 115200"
+                "OLED_Hello_World",
+                "I2C_Scanner",
+                "DHT_Tester",
+                "SPI_Master_Test"
             ],
             qKey: "q_14"
         }
@@ -440,7 +440,7 @@
             radio.name = item.qKey;
             radio.value = choice;
             radio.required = true;
-            radio.id = `${item.qKey}_${choice.replace(/[\s\(\)\/\#\<\>\,\.\"\:]+/g, '_')}`;
+            radio.id = `${item.qKey}_${choice.replace(/[\s\(\)\/\#\<\>\,\.\"\:\;]+/g, '_')}`;
 
             const label = document.createElement('label');
             label.htmlFor = radio.id;
@@ -465,7 +465,7 @@
         const studentId = this.value.trim();
         if (studentId.length >= 3) {
             idStatusMsg.style.display = 'block';
-            idStatusMsg.style.color = '#0284c7';
+            idStatusMsg.style.color = '#7c3aed';
             idStatusMsg.innerText = '🔄 กำลังตรวจสอบรหัสประจำตัว...';
 
             google.script.run
@@ -500,7 +500,7 @@
     const captureShield = document.getElementById('captureShield');
     const watermarkOverlay = document.getElementById('watermarkOverlay');
 
-    // เลเยอร์ลายน้ำ Forensic Watermark
+    // เลเยอร์ลายน้ำ Forensic Watermark (มาตรฐาน IoT-TATC-THERDSAK)
     function updateWatermark() {
         const idVal = studentIdInput.value.trim();
         const nameVal = document.getElementById('studentNameInput').value.trim();
@@ -628,7 +628,7 @@
     // ==========================================
     // ระบบจัดการสำหรับครูผู้สอน (Google Sheets & Code Copy)
     // ==========================================
-    const CURRENT_EXAM_KEY = 'Install_Setting';
+    const CURRENT_EXAM_KEY = 'exam_display';
 
     function extractSheetId(url) {
         if (!url) return '';
@@ -655,8 +655,8 @@
             }
         } else {
             badge.innerText = 'ยังไม่ได้ระบุ Sheet ID';
-            badge.style.background = '#e0f2fe';
-            badge.style.color = '#0369a1';
+            badge.style.background = '#f3e8ff';
+            badge.style.color = '#6d28d9';
             if (link) link.style.display = 'none';
         }
     }
