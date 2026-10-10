@@ -45,12 +45,14 @@
         return this;
     };
 
-    LocalScriptRunner.prototype.checkStudentSubmitted = function(studentId) {
+    LocalScriptRunner.prototype.checkStudentSubmitted = function(studentId, examMode) {
         var self = this;
+        var urlMode = new URLSearchParams(window.location.search).get('mode');
+        var mode = (examMode || urlMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
         fetch('/api/check-student', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studentId: studentId, examType: examType })
+            body: JSON.stringify({ studentId: studentId, examType: examType, examMode: mode })
         })
         .then(function(res) {
             if (!res.ok) throw new Error('HTTP error ' + res.status);
@@ -58,17 +60,19 @@
         })
         .then(function(data) { self._successHandler(data); })
         .catch(function(err) {
-            var isSubmitted = localStorage.getItem('exam_submitted_' + examType) === 'true';
+            var isSubmitted = localStorage.getItem('exam_submitted_' + examType + '_' + mode) === 'true';
             self._successHandler({
                 submitted: isSubmitted,
-                message: isSubmitted ? 'รหัสนี้เคยส่งแบบทดสอบไปแล้ว (ไม่อนุญาตให้ส่งซ้ำ)' : ''
+                message: isSubmitted ? 'รหัสนี้เคยส่งแบบทดสอบรอบนี้ไปแล้ว (ไม่อนุญาตให้ส่งซ้ำ)' : ''
             });
         });
     };
 
     LocalScriptRunner.prototype.processQuiz = function(params) {
         var self = this;
-        var payload = Object.assign({}, params, { examType: examType });
+        var urlMode = new URLSearchParams(window.location.search).get('mode');
+        var mode = (params.examMode || urlMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
+        var payload = Object.assign({}, params, { examType: examType, examMode: mode });
         fetch('/api/process-quiz', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

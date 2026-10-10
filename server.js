@@ -288,11 +288,12 @@ const server = http.createServer(async (req, res) => {
     // API ENDPOINTS
     // ==========================================
 
-    // API: ตรวจสอบสิทธิ์ว่าเคยส่งแล้วหรือไม่
+    // API: ตรวจสอบสิทธิ์ว่าเคยส่งแล้วหรือไม่ (รองรับทั้ง Pre-Test และ Post-Test)
     if (pathname === '/api/check-student' && req.method === 'POST') {
         const body = await parseRequestBody(req);
         const studentId = String(body.studentId || '').trim();
         const examType = body.examType || '';
+        const examMode = (body.examMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
 
         if (!studentId) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -301,23 +302,25 @@ const server = http.createServer(async (req, res) => {
         }
 
         const submissions = readJsonFile(SUBMISSIONS_FILE, []);
-        const already = submissions.find(s => s.studentId === studentId && (!examType || s.examType === examType));
+        const already = submissions.find(s => s.studentId === studentId && (!examType || s.examType === examType) && (s.examMode || 'pre') === examMode);
 
+        const modeText = examMode === 'pre' ? 'ก่อนเรียน (Pre-Test)' : 'หลังเรียน (Post-Test)';
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             submitted: !!already,
-            message: already ? `รหัสประจำตัว ${studentId} เคยส่งแบบทดสอบนี้ไปแล้ว (ส่งได้เพียงครั้งเดียว)` : ''
+            message: already ? `รหัสประจำตัว ${studentId} เคยส่งแบบทดสอบรอบ${modeText}ไปแล้ว (ส่งได้เพียงครั้งเดียว)` : ''
         }));
         return;
     }
 
-    // API: ส่งและตรวจข้อสอบ (Process Quiz)
+    // API: ส่งและตรวจข้อสอบ (Process Quiz - รองรับทั้ง Pre-Test และ Post-Test พร้อมคำนวณพัฒนาการ)
     if (pathname === '/api/process-quiz' && req.method === 'POST') {
         const params = await parseRequestBody(req);
         const studentId = String(params.studentId || '').trim();
         const studentName = params.studentName || 'ไม่ได้ระบุชื่อ';
         const studentRoom = params.studentRoom || 'ไม่ได้ระบุห้อง';
         const examType = params.examType || 'exam_wifi';
+        const examMode = (params.examMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
 
         if (!studentId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -326,13 +329,14 @@ const server = http.createServer(async (req, res) => {
         }
 
         const submissions = readJsonFile(SUBMISSIONS_FILE, []);
-        const existing = submissions.find(s => s.studentId === studentId && s.examType === examType);
+        const existing = submissions.find(s => s.studentId === studentId && s.examType === examType && (s.examMode || 'pre') === examMode);
         if (existing) {
+            const modeText = examMode === 'pre' ? 'ก่อนเรียน (Pre-Test)' : 'หลังเรียน (Post-Test)';
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
                 success: false,
                 alreadySubmitted: true,
-                message: `รหัสประจำตัว ${studentId} ได้ส่งคำตอบไปแล้ว ไม่อนุญาตให้ส่งซ้ำครับ`
+                message: `รหัสประจำตัว ${studentId} ได้ส่งคำตอบรอบ${modeText}ไปแล้ว ไม่อนุญาตให้ส่งซ้ำครับ`
             }));
             return;
         }
@@ -355,11 +359,32 @@ const server = http.createServer(async (req, res) => {
             };
         }
 
+        // ค้นหาคะแนนรอบ Pre-Test เพื่อคำนวณพัฒนาการ (Gain Score) หากกำลังส่งรอบ Post-Test
+        let preScore = null;
+        let diffScore = null;
+        let gainPercent = null;
+
+        if (examMode === 'post') {
+            const preRecord = submissions.find(s => s.studentId === studentId && s.examType === examType && (s.examMode || 'pre') === 'pre');
+            if (preRecord) {
+                preScore = preRecord.score;
+                diffScore = score - preScore;
+                const maxPossibleGain = totalQuestions - preScore;
+                if (maxPossibleGain > 0) {
+                    gainPercent = Math.round((diffScore / maxPossibleGain) * 100);
+                } else {
+                    gainPercent = 100;
+                }
+            }
+        }
+
         const newRecord = {
             id: Date.now().toString(),
             timestamp: new Date().toISOString(),
             formattedTime: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),
             examType: examType,
+            examMode: examMode,
+            examModeTitle: examMode === 'pre' ? 'ก่อนเรียน (Pre-Test)' : 'หลังเรียน (Post-Test)',
             examTitle: examMeta.title,
             studentId: studentId,
             studentName: studentName,
@@ -367,19 +392,26 @@ const server = http.createServer(async (req, res) => {
             score: score,
             total: totalQuestions,
             scoreString: `${score} / ${totalQuestions}`,
+            preScore: preScore,
+            diffScore: diffScore,
+            gainPercent: gainPercent,
             answersDetail: answersDetail
         };
 
         submissions.push(newRecord);
         writeJsonFile(SUBMISSIONS_FILE, submissions);
 
-        console.log(`[Exam Submitted] ${studentName} (${studentId}) - ${examMeta.title} -> Score: ${score}/${totalQuestions}`);
+        console.log(`[Exam Submitted (${examMode.toUpperCase()})] ${studentName} (${studentId}) - ${examMeta.title} -> Score: ${score}/${totalQuestions}${diffScore !== null ? ` (Gain: ${diffScore >= 0 ? '+' : ''}${diffScore})` : ''}`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             success: true,
             score: score,
             total: totalQuestions,
+            examMode: examMode,
+            preScore: preScore,
+            diffScore: diffScore,
+            gainPercent: gainPercent,
             studentName: studentName,
             studentRoom: studentRoom
         }));

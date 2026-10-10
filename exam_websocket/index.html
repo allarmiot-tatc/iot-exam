@@ -103,6 +103,80 @@
             .info-grid { grid-template-columns: 1fr; }
             .info-group-full { grid-column: span 1; }
         }
+    
+        /* Pre/Post Exam Mode Banner */
+        .mode-banner {
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            border: 1px solid transparent;
+        }
+        .mode-banner.pre-mode {
+            background: #fffbeb;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .mode-banner.post-mode {
+            background: #ecfdf5;
+            border-color: #6ee7b7;
+            color: #065f46;
+        }
+        .mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+            font-size: 0.95em;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .mode-banner.pre-mode .mode-badge {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .mode-banner.post-mode .mode-badge {
+            background: #d1fae5;
+            color: #047857;
+        }
+        .mode-switch-group {
+            display: flex;
+            gap: 6px;
+        }
+        .mode-switch-btn {
+            font-size: 0.82em;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .mode-switch-btn.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .mode-banner.pre-mode .mode-switch-btn.active {
+            color: #b45309;
+            border-color: #f59e0b;
+        }
+        .mode-banner.post-mode .mode-switch-btn.active {
+            color: #047857;
+            border-color: #10b981;
+        }
+        .mode-switch-btn:not(.active) {
+            opacity: 0.7;
+            color: inherit;
+        }
+        .mode-switch-btn:hover {
+            opacity: 1;
+        }
+
     </style>
 </head>
 <body>
@@ -192,7 +266,20 @@
 </div>
 
 <div class="form-container">
-    <h2>แบบทดสอบ: ESP32 Web Server & WebSocket</h2>
+
+    <!-- แถบระบุโหมดการสอบ (ก่อนเรียน vs หลังเรียน) -->
+    <div id="modeBanner" class="mode-banner pre-mode">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span id="modeBadge" class="mode-badge">📝 ก่อนเรียน (Pre-Test)</span>
+            <span id="modeSubtitle" style="font-size: 0.85em; opacity: 0.9;">วัดความรู้พื้นฐานก่อนเข้าสู่บทเรียน</span>
+        </div>
+        <div class="mode-switch-group">
+            <a href="?mode=pre" id="switchPreBtn" class="mode-switch-btn active">📝 ก่อนเรียน</a>
+            <a href="?mode=post" id="switchPostBtn" class="mode-switch-btn">🎯 หลังเรียน</a>
+        </div>
+    </div>
+
+    <h2 id="examMainTitle">แบบทดสอบ: ESP32 Web Server & WebSocket</h2>
     
     <form action="" method="POST" id="quizForm">
         
@@ -518,13 +605,49 @@
     // =========================================================================
     // การระบุชุดข้อสอบและตั้งค่าระบบจับเวลา 15 นาที พร้อม Auto-Submit
     // =========================================================================
+        const urlParams = new URLSearchParams(window.location.search);
+    const EXAM_MODE = (urlParams.get('mode') || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
+    const EXAM_MODE_LABEL = EXAM_MODE === 'pre' ? 'ก่อนเรียน (Pre-Test)' : 'หลังเรียน (Post-Test)';
     const CURRENT_EXAM_KEY = 'exam_websocket';
 
     // ตั้งค่าคงที่: 15 ข้อ ให้เวลาข้อละ 1 นาที = 15 นาที (900 วินาที)
     const EXAM_DURATION_MINUTES = 15;
     const EXAM_DURATION_SECONDS = EXAM_DURATION_MINUTES * 60;
-    const TIMER_STORAGE_KEY = 'exam_timer_start_' + CURRENT_EXAM_KEY;
-    const SUBMITTED_STORAGE_KEY = 'exam_submitted_' + CURRENT_EXAM_KEY;
+    const TIMER_STORAGE_KEY = 'exam_timer_start_' + CURRENT_EXAM_KEY + '_' + EXAM_MODE;
+    const SUBMITTED_STORAGE_KEY = 'exam_submitted_' + CURRENT_EXAM_KEY + '_' + EXAM_MODE;
+
+    // ปรับแต่ง UI ตามรอบการสอบ (ก่อนเรียน vs หลังเรียน)
+    function setupModeUI() {
+        const banner = document.getElementById('modeBanner');
+        const badge = document.getElementById('modeBadge');
+        const sub = document.getElementById('modeSubtitle');
+        const btnPre = document.getElementById('switchPreBtn');
+        const btnPost = document.getElementById('switchPostBtn');
+        const mainTitle = document.getElementById('examMainTitle');
+
+        if (!banner) return;
+        if (EXAM_MODE === 'post') {
+            banner.className = 'mode-banner post-mode';
+            if (badge) badge.innerText = '🎯 หลังเรียน (Post-Test)';
+            if (sub) sub.innerText = 'วัดผลสัมฤทธิ์หลังเรียนรู้ เพื่อดูพัฒนาการ';
+            if (btnPost) btnPost.classList.add('active');
+            if (btnPre) btnPre.classList.remove('active');
+            if (mainTitle && !mainTitle.innerHTML.includes('[Post-Test]')) {
+                mainTitle.innerHTML += ' <span style="font-size:0.6em; color:#059669; font-weight:normal;">[Post-Test]</span>';
+            }
+            document.title = document.title.replace('แบบทดสอบ:', 'แบบทดสอบหลังเรียน:');
+        } else {
+            banner.className = 'mode-banner pre-mode';
+            if (badge) badge.innerText = '📝 ก่อนเรียน (Pre-Test)';
+            if (sub) sub.innerText = 'วัดความรู้พื้นฐานก่อนเข้าสู่บทเรียน (ไม่แสดงเฉลย)';
+            if (btnPre) btnPre.classList.add('active');
+            if (btnPost) btnPost.classList.remove('active');
+            if (mainTitle && !mainTitle.innerHTML.includes('[Pre-Test]')) {
+                mainTitle.innerHTML += ' <span style="font-size:0.6em; color:#d97706; font-weight:normal;">[Pre-Test]</span>';
+            }
+            document.title = document.title.replace('แบบทดสอบ:', 'แบบทดสอบก่อนเรียน:');
+        }
+    }
 
     let examTimerInterval = null;
     let isAutoSubmitting = false;
@@ -566,6 +689,7 @@
 
     // 2. เริ่มต้นระบบจับเวลา (อิงตามเวลาจริง ป้องกันการรีเฟรชหน้าเพื่อเริ่มใหม่)
     function initExamTimer() {
+        setupModeUI();
         createTimerWidget();
 
         if (localStorage.getItem(SUBMITTED_STORAGE_KEY) === 'true') {
@@ -695,7 +819,9 @@
         const formData = {
             studentId: studentIdEl.value.trim() || (isAuto ? 'หมดเวลา-' + Date.now().toString().slice(-4) : 'ไม่ระบุ ID'),
             studentRoom: studentRoomEl.value.trim() || (isAuto ? 'ส่งอัตโนมัติ' : 'ไม่ระบุห้อง'),
-            studentName: studentNameEl.value.trim() || (isAuto ? 'ผู้สอบ (หมดเวลา 15 นาที)' : 'ไม่ระบุชื่อ')
+            studentName: studentNameEl.value.trim() || (isAuto ? 'ผู้สอบ (หมดเวลา 15 นาที ' + EXAM_MODE_LABEL + ')' : 'ไม่ระบุชื่อ'),
+            examType: CURRENT_EXAM_KEY,
+            examMode: EXAM_MODE
         };
 
         for (let i = 0; i < 15; i++) {
@@ -731,20 +857,63 @@
 
             const container = document.querySelector('.form-container');
             if (container) {
-                container.innerHTML = `
-                    <div style="text-align:center; padding: 40px 15px;">
-                        <div style="font-size: 55px; margin-bottom: 15px;">${isAuto ? '⏰' : '🎉'}</div>
-                        <h2 style="color: #28a745; border: none; margin-bottom: 10px;">ส่งคำตอบเรียบร้อยแล้ว</h2>
-                        ${autoBadge}
-                        <p style="font-size: 1.15em; color: #444; margin-top: 15px; margin-bottom: 20px;">
-                            ระบบได้รับข้อมูลของ <strong>${formData.studentName}</strong> (ห้อง ${formData.studentRoom}) เรียบร้อยแล้วครับ
-                        </p>
-                        <div style="display: inline-block; background: #e8f5e9; border: 1px solid #c8e6c9; padding: 18px 30px; border-radius: 10px;">
-                            <div style="font-size: 0.9em; color: #2e7d32; font-weight: bold;">คะแนนสอบที่ได้</div>
-                            <div style="font-size: 2.4em; color: #1b5e20; font-weight: bold; margin-top: 5px;">${scoreText} / 15</div>
+                if (EXAM_MODE === 'pre') {
+                    container.innerHTML = `
+                        <div style="text-align:center; padding: 40px 15px;">
+                            <div style="font-size: 55px; margin-bottom: 15px;">📝</div>
+                            <h2 style="color: #d97706; border: none; margin-bottom: 10px;">ส่งแบบทดสอบก่อนเรียน (Pre-Test) เรียบร้อย</h2>
+                            ${autoBadge}
+                            <p style="font-size: 1.15em; color: #444; margin-top: 15px; margin-bottom: 20px;">
+                                บันทึกผลการทดสอบของ <strong>${formData.studentName}</strong> (ห้อง ${formData.studentRoom}) เรียบร้อยแล้ว
+                            </p>
+                            <div style="display: inline-block; background: #fef3c7; border: 1px solid #fde68a; padding: 18px 30px; border-radius: 10px; margin-bottom: 20px;">
+                                <div style="font-size: 0.9em; color: #b45309; font-weight: bold;">คะแนนก่อนเรียนที่ได้</div>
+                                <div style="font-size: 2.4em; color: #92400e; font-weight: bold; margin-top: 5px;">${scoreText} / 15</div>
+                            </div>
+                            <div style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 14px 20px; border-radius: 8px; max-width: 480px; margin: 0 auto; color: #64748b; font-size: 0.92em;">
+                                💡 <strong>คำแนะนำ:</strong> ในรอบก่อนเรียนระบบจะไม่แสดงเฉลย เพื่อเตรียมความพร้อมสำหรับเข้าสู่บทเรียน<br>เมื่อเรียนจบแล้ว อย่าลืมกลับมาทำ <strong>"แบบทดสอบหลังเรียน (Post-Test)"</strong> เพื่อวัดผลสัมฤทธิ์นะครับ
+                            </div>
+                            <div style="margin-top: 25px;">
+                                <a href="?mode=post" class="btn" style="background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(5,150,105,0.25);">
+                                    🎯 ไปทำแบบทดสอบหลังเรียน (Post-Test)
+                                </a>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    let gainHtml = '';
+                    if (response && response.preScore !== null && response.preScore !== undefined) {
+                        const diff = response.diffScore;
+                        const diffSign = diff >= 0 ? '+' : '';
+                        gainHtml = `
+                            <div style="margin-top: 20px; padding: 16px 24px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; display: inline-block; text-align: center; box-shadow: 0 2px 8px rgba(16,185,129,0.15);">
+                                <div style="font-size: 0.92em; color: #047857; font-weight: bold;">📈 ผลการเปรียบเทียบพัฒนาการ (Learning Gain)</div>
+                                <div style="font-size: 1.1em; color: #065f46; margin-top: 6px;">
+                                    ก่อนเรียน: <strong>${response.preScore}</strong> คะแนน ➜ หลังเรียน: <strong>${response.score}</strong> คะแนน
+                                </div>
+                                <div style="font-size: 1.35em; color: #059669; font-weight: bold; margin-top: 4px;">
+                                    พัฒนาการ: ${diffSign}${diff} คะแนน (${response.gainPercent}%)
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    container.innerHTML = `
+                        <div style="text-align:center; padding: 40px 15px;">
+                            <div style="font-size: 55px; margin-bottom: 15px;">🎉</div>
+                            <h2 style="color: #059669; border: none; margin-bottom: 10px;">ส่งแบบทดสอบหลังเรียน (Post-Test) เรียบร้อย</h2>
+                            ${autoBadge}
+                            <p style="font-size: 1.15em; color: #444; margin-top: 15px; margin-bottom: 20px;">
+                                บันทึกผลการทดสอบของ <strong>${formData.studentName}</strong> (ห้อง ${formData.studentRoom}) เรียบร้อยแล้ว
+                            </p>
+                            <div style="display: inline-block; background: #e8f5e9; border: 1px solid #c8e6c9; padding: 18px 30px; border-radius: 10px;">
+                                <div style="font-size: 0.9em; color: #2e7d32; font-weight: bold;">คะแนนหลังเรียนที่ได้</div>
+                                <div style="font-size: 2.4em; color: #1b5e20; font-weight: bold; margin-top: 5px;">${scoreText} / 15</div>
+                            </div>
+                            <div>${gainHtml}</div>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -795,10 +964,10 @@
     // 6. ฟังก์ชันสำหรับครูเพื่อรีเซ็ตเวลาทดสอบ (ต้องผ่านรหัส PIN)
     function resetExamTimerForTest() {
         if (!verifyTeacherAuth()) return;
-        if (confirm('คุณต้องการรีเซ็ตตัวจับเวลา 15 นาที สำหรับเครื่องนี้เพื่อทดสอบใหม่หรือไม่?')) {
+        if (confirm('คุณต้องการรีเซ็ตตัวจับเวลา 15 นาที และสถานะส่งข้อสอบ (รอบ' + EXAM_MODE_LABEL + ') สำหรับเครื่องนี้หรือไม่?')) {
             localStorage.removeItem(TIMER_STORAGE_KEY);
             localStorage.removeItem(SUBMITTED_STORAGE_KEY);
-            alert('✅ รีเซ็ตเวลาสอบเรียบร้อยแล้ว กำลังโหลดหน้าใหม่...');
+            alert('✅ รีเซ็ตเวลาสอบรอบ' + EXAM_MODE_LABEL + 'เรียบร้อยแล้ว กำลังโหลดหน้าใหม่...');
             location.reload();
         }
     }

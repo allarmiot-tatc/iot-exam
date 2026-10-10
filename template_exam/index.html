@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แบบทดสอบ: {{EXAM_TITLE}}</title>
+    <!-- โหลด Local Adapter เพื่อเชื่อมต่อกับ Node.js Local Server อัตโนมัติเมื่อรันแบบออฟไลน์/ในโรงเรียน -->
+    <script src="../local-adapter.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f1f5f9;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Sarabun", "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .portal-nav-btn {
+            display: inline-block;
+            background: #ffffff;
+            color: var(--text-main);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .portal-nav-btn:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+
+        /* Teacher Panel */
+        .teacher-panel {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 12px auto;
+            max-width: 650px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .sheet-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .sheet-input-group input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #93c5fd;
+            border-radius: 6px;
+            font-size: 0.9em;
+            background: white;
+        }
+        .save-sheet-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .form-container {
+            max-width: 650px;
+            margin: 0 auto 40px auto;
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Pre/Post Exam Mode Banner */
+        .mode-banner {
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            border: 1px solid transparent;
+        }
+        .mode-banner.pre-mode {
+            background: #fffbeb;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .mode-banner.post-mode {
+            background: #ecfdf5;
+            border-color: #6ee7b7;
+            color: #065f46;
+        }
+        .mode-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+            font-size: 0.95em;
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+        .mode-banner.pre-mode .mode-badge {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .mode-banner.post-mode .mode-badge {
+            background: #d1fae5;
+            color: #047857;
+        }
+        .mode-switch-group {
+            display: flex;
+            gap: 6px;
+        }
+        .mode-switch-btn {
+            font-size: 0.82em;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .mode-switch-btn.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .mode-banner.pre-mode .mode-switch-btn.active {
+            color: #b45309;
+            border-color: #f59e0b;
+        }
+        .mode-banner.post-mode .mode-switch-btn.active {
+            color: #047857;
+            border-color: #10b981;
+        }
+        .mode-switch-btn:not(.active) {
+            opacity: 0.7;
+            color: inherit;
+        }
+        .mode-switch-btn:hover {
+            opacity: 1;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--primary);
+            text-align: center;
+            font-size: 1.4em;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 12px;
+        }
+
+        .question-block {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .question-title {
+            font-weight: 600;
+            font-size: 1.05em;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .info-group label {
+            font-size: 0.88em;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+        .info-group input {
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .option-label:hover {
+            border-color: var(--primary);
+            background: #f0fdf4;
+        }
+        .option-label input[type="radio"] {
+            margin: 0;
+            accent-color: var(--primary);
+            transform: scale(1.15);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+            transition: background 0.2s;
+        }
+        .submit-btn:hover {
+            background: var(--primary-hover);
+        }
+        .submit-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Anti-Cheat Overlay */
+        #warningOverlay, #lockScreen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .overlay-box, .lock-box {
+            background: #1e293b;
+            border: 2px solid #ef4444;
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .refresh-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- หน้าจอแจ้งเตือนหลุดโฟกัส / แคปหน้าจอ -->
+<div id="warningOverlay">
+    <div class="overlay-box">
+        <h2 id="warningTitle" style="color: #ef4444; border: none;">⚠️ แจ้งเตือน: กรุณาอยู่ในหน้าจอข้อสอบ</h2>
+        <p id="warningDetail" style="font-size: 1.1em; line-height: 1.6;">หน้าต่างแบบทดสอบหลุดโฟกัส หรือมีการเรียกใช้งานโปรแกรมจับภาพหน้าจอ</p>
+        <p style="color: #94a3b8; font-size: 0.95em;">กรุณาคลิกกลับเข้ามาที่หน้านี้เพื่อทำข้อสอบต่อ</p>
+    </div>
+</div>
+
+<!-- หน้าจอล็อกถาวรเมื่อทำผิดกฎเกินโควตา -->
+<div id="lockScreen">
+    <div class="lock-box">
+        <h2 style="color: #ef4444; border: none;">🚫 ข้อสอบถูกระงับ</h2>
+        <p style="font-size: 1.1em; line-height: 1.6;">ระบบตรวจพบการสลับหน้าจอ ออกจากแอป หรือพยายามคัดลอก/แคปเจอร์หน้าจอเกินโควตาที่กำหนด</p>
+        <p style="color: #94a3b8; margin-top: 10px;">พฤติกรรมนี้ถูกบันทึกประวัติการสอบเข้าสู่ระบบเรียบร้อยแล้ว</p>
+        <button class="refresh-btn" onclick="window.location.reload()">ลองโหลดหน้าใหม่อีกครั้ง</button>
+    </div>
+</div>
+
+<div style="max-width: 650px; margin: 0 auto 14px auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <a href="../" class="portal-nav-btn" style="margin: 0;">← กลับหน้ารวมแบบทดสอบ (Dashboard)</a>
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <button type="button" onclick="toggleTeacherPanel()" style="background: #1e293b; color: #60a5fa; border: 1px solid #60a5fa; padding: 5px 12px; border-radius: 6px; font-size: 0.85em; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+            <span>👨‍🏫 ส่วนของครูผู้สอน</span>
+        </button>
+    </div>
+</div>
+
+<!-- ส่วนจัดการสำหรับครูผู้สอน (Google Sheets & Script) ป้องกันด้วยรหัส PIN -->
+<div id="teacherPanel" class="teacher-panel" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #bfdbfe; padding-bottom: 10px; margin-bottom: 14px;">
+        <h3 style="margin: 0; color: #1e40af; font-size: 1.05em;">👨‍🏫 จัดการแบบทดสอบสำหรับครูผู้สอน (Google Sheets & Script)</h3>
+        <button type="button" onclick="toggleTeacherPanel()" style="background: none; border: none; font-size: 1.2em; cursor: pointer; color: #1d4ed8;">✕</button>
+    </div>
+    <p style="margin: 0 0 10px 0; font-size: 0.88em; color: #1e40af;">
+        วางลิงก์ Google Sheets ของคุณ เพื่อใช้เป็นฐานข้อมูลบันทึกคะแนนและประวัติการสอบ:
+    </p>
+    
+    <div class="sheet-input-group">
+        <input type="text" id="teacherSheetUrl" placeholder="วาง URL ของ Google Sheets ที่นี่..." value="">
+        <button type="button" class="save-sheet-btn" onclick="saveTeacherSheetUrl()">💾 เซฟลิงก์</button>
+    </div>
+    
+    <div id="sheetStatusInfo" style="font-size: 0.86em; color: #4b5563; margin-bottom: 8px;">
+        <span id="sheetIdBadge" style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-family: monospace;">ยังไม่ได้ระบุ Sheet ID</span>
+        <div style="margin-top: 6px;">
+            <a id="sheetExternalLink" href="#" target="_blank" style="display: none; color: #2563eb; text-decoration: none; font-weight: bold;">↗️ เปิด Google Sheets ของคุณ</a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px;">
+        <button type="button" onclick="copyCodeGsWithSheetId()" style="background: #059669; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.92em;">
+            <span>📋 คัดลอก Code.gs (ใส่ Sheet ID แล้ว)</span>
+        </button>
+        <button type="button" onclick="copyIndexHtmlCode()" style="background: #2563eb; color: white; border: none; padding: 12px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.92em;">
+            <span>📄 คัดลอก Index.html</span>
+        </button>
+    </div>
+
+    <div id="copyAlert" style="display: none; margin-top: 12px; padding: 10px; border-radius: 6px; font-size: 0.9em; font-weight: bold; text-align: center;"></div>
+
+    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <span style="font-size: 0.85em; color: #64748b;">⏱️ เวลาทำข้อสอบ: <strong>15 นาที</strong> (1 นาที/ข้อ บังคับส่งอัตโนมัติ)</span>
+        <button type="button" onclick="resetExamTimerForTest()" style="background: #e11d48; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.82em; display: inline-flex; align-items: center; gap: 4px;">
+            <span>🔄 รีเซ็ตเวลาสอบ (สำหรับทดสอบ)</span>
+        </button>
+    </div>
+</div>
+
+<div class="form-container">
+    <!-- แถบระบุโหมดการสอบ (ก่อนเรียน vs หลังเรียน) -->
+    <div id="modeBanner" class="mode-banner pre-mode">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span id="modeBadge" class="mode-badge">📝 ก่อนเรียน (Pre-Test)</span>
+            <span id="modeSubtitle" style="font-size: 0.85em; opacity: 0.9;">วัดความรู้พื้นฐานก่อนเข้าสู่บทเรียน</span>
+        </div>
+        <div class="mode-switch-group">
+            <a href="?mode=pre" id="switchPreBtn" class="mode-switch-btn active">📝 ก่อนเรียน</a>
+            <a href="?mode=post" id="switchPostBtn" class="mode-switch-btn">🎯 หลังเรียน</a>
+        </div>
+    </div>
+
+    <h2 id="examMainTitle">แบบทดสอบ: {{EXAM_TITLE}}</h2>
+    
+    <form action="" method="POST" id="quizForm">
+        
+        <!-- ข้อมูลผู้เข้าสอบ -->
+        <div class="question-block" style="border-left: 5px solid var(--primary);">
+            <div class="question-title" style="color: var(--primary); margin-bottom: 15px;">📝 ข้อมูลผู้เข้าสอบ</div>
+            <div class="info-grid">
+                <div class="info-group">
+                    <label for="studentIdInput">เลขประจำตัว (ID)</label>
+                    <input type="text" name="studentId" id="studentIdInput" required placeholder="เช่น 64XXXXXX">
+                    <div id="idStatusMsg" style="font-size: 0.85em; margin-top: 5px; font-weight: bold; display: none;"></div>
+                </div>
+                <div class="info-group">
+                    <label for="studentRoomInput">ระดับชั้น / ห้อง</label>
+                    <input type="text" name="studentRoom" id="studentRoomInput" required placeholder="เช่น สฟ.1/1">
+                </div>
+            </div>
+            <div class="info-group">
+                <label for="studentNameInput">ชื่อ-นามสกุล</label>
+                <input type="text" name="studentName" id="studentNameInput" required placeholder="นาย/นางสาว สมชาย ใจดี">
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- ส่วนข้อคำถาม 15 ข้อ (ปรับแต่งโจทย์และตัวเลือกตามรายวิชา) -->
+        <!-- ======================================================== -->
+
+        <!-- ข้อ 1 -->
+        <div class="question-block">
+            <div class="question-title">1. คำถามข้อที่ 1 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_0" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_0" value="ตัวเลือก ข"> ข. ตัวเลือก ข (คำตอบที่ถูกต้องข้อ 1)</label>
+            <label class="option-label"><input type="radio" name="q_0" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_0" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <!-- ข้อ 2 -->
+        <div class="question-block">
+            <div class="question-title">2. คำถามข้อที่ 2 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_1" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_1" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_1" value="ตัวเลือก ค"> ค. ตัวเลือก ค (คำตอบที่ถูกต้องข้อ 2)</label>
+            <label class="option-label"><input type="radio" name="q_1" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <!-- ข้อ 3 -->
+        <div class="question-block">
+            <div class="question-title">3. คำถามข้อที่ 3 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_2" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_2" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_2" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_2" value="ตัวเลือก ง"> ง. ตัวเลือก ง (คำตอบที่ถูกต้องข้อ 3)</label>
+        </div>
+
+        <!-- ข้อ 4 ถึง 15 (เพิ่มข้อสอบให้ครบ 15 ข้อตามโครงสร้างเดียวกัน) -->
+        <div class="question-block">
+            <div class="question-title">4. คำถามข้อที่ 4 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_3" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_3" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_3" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_3" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">5. คำถามข้อที่ 5 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_4" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_4" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_4" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_4" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">6. คำถามข้อที่ 6 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_5" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_5" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_5" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_5" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">7. คำถามข้อที่ 7 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_6" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_6" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_6" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_6" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">8. คำถามข้อที่ 8 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_7" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_7" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_7" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_7" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">9. คำถามข้อที่ 9 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_8" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_8" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_8" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_8" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">10. คำถามข้อที่ 10 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_9" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_9" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_9" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_9" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">11. คำถามข้อที่ 11 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_10" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_10" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_10" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_10" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">12. คำถามข้อที่ 12 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_11" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_11" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_11" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_11" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">13. คำถามข้อที่ 13 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_12" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_12" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_12" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_12" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">14. คำถามข้อที่ 14 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_13" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_13" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_13" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_13" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <div class="question-block">
+            <div class="question-title">15. คำถามข้อที่ 15 เกี่ยวกับ {{EXAM_TITLE}}?</div>
+            <label class="option-label"><input type="radio" name="q_14" value="ตัวเลือก ก" required> ก. ตัวเลือก ก</label>
+            <label class="option-label"><input type="radio" name="q_14" value="ตัวเลือก ข"> ข. ตัวเลือก ข</label>
+            <label class="option-label"><input type="radio" name="q_14" value="ตัวเลือก ค"> ค. ตัวเลือก ค</label>
+            <label class="option-label"><input type="radio" name="q_14" value="ตัวเลือก ง"> ง. ตัวเลือก ง</label>
+        </div>
+
+        <button type="submit" class="submit-btn">ส่งคำตอบ</button>
+    </form>
+</div>
+
+<script>
+    // =========================================================================
+    // ⚙️ การตั้งค่าหลักของแบบทดสอบ (Configuration - รองรับ Pre-Test และ Post-Test)
+    // =========================================================================
+    const urlParams = new URLSearchParams(window.location.search);
+    const EXAM_MODE = (urlParams.get('mode') || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
+    const EXAM_MODE_LABEL = EXAM_MODE === 'pre' ? 'ก่อนเรียน (Pre-Test)' : 'หลังเรียน (Post-Test)';
+    const CURRENT_EXAM_KEY = '{{EXAM_KEY}}'; // เช่น exam_python, exam_iot
+    const EXAM_DURATION_MINUTES = 15; // 15 ข้อ ให้เวลา 15 นาที
+    const TIMER_STORAGE_KEY = 'exam_timer_start_' + CURRENT_EXAM_KEY + '_' + EXAM_MODE;
+    const SUBMITTED_STORAGE_KEY = 'exam_submitted_' + CURRENT_EXAM_KEY + '_' + EXAM_MODE;
+    const TEACHER_PIN = "1234"; // รหัสผ่านสำหรับครูผู้สอน
+
+    let examTimerInterval = null;
+    let examTimeRemainingSeconds = EXAM_DURATION_MINUTES * 60;
+
+    // ปรับแต่ง UI ตามรอบการสอบ (ก่อนเรียน vs หลังเรียน)
+    function setupModeUI() {
+        const banner = document.getElementById('modeBanner');
+        const badge = document.getElementById('modeBadge');
+        const sub = document.getElementById('modeSubtitle');
+        const btnPre = document.getElementById('switchPreBtn');
+        const btnPost = document.getElementById('switchPostBtn');
+        const mainTitle = document.getElementById('examMainTitle');
+
+        if (!banner) return;
+        if (EXAM_MODE === 'post') {
+            banner.className = 'mode-banner post-mode';
+            if (badge) badge.innerText = '🎯 หลังเรียน (Post-Test)';
+            if (sub) sub.innerText = 'วัดผลสัมฤทธิ์หลังเรียนรู้ เพื่อดูพัฒนาการ';
+            if (btnPost) btnPost.classList.add('active');
+            if (btnPre) btnPre.classList.remove('active');
+            if (mainTitle) mainTitle.innerHTML = `แบบทดสอบหลังเรียน: {{EXAM_TITLE}} <span style="font-size:0.6em; color:#059669; font-weight:normal;">[Post-Test]</span>`;
+            document.title = `แบบทดสอบหลังเรียน: {{EXAM_TITLE}}`;
+        } else {
+            banner.className = 'mode-banner pre-mode';
+            if (badge) badge.innerText = '📝 ก่อนเรียน (Pre-Test)';
+            if (sub) sub.innerText = 'วัดความรู้พื้นฐานก่อนเข้าสู่บทเรียน (ไม่แสดงเฉลย)';
+            if (btnPre) btnPre.classList.add('active');
+            if (btnPost) btnPost.classList.remove('active');
+            if (mainTitle) mainTitle.innerHTML = `แบบทดสอบก่อนเรียน: {{EXAM_TITLE}} <span style="font-size:0.6em; color:#d97706; font-weight:normal;">[Pre-Test]</span>`;
+            document.title = `แบบทดสอบก่อนเรียน: {{EXAM_TITLE}}`;
+        }
+    }
+
+    // =========================================================================
+    // ⏱️ ระบบตัวนับเวลาถอยหลัง และ Auto-Submit เมื่อหมดเวลา
+    // =========================================================================
+    function initExamTimer() {
+        setupModeUI();
+
+        if (localStorage.getItem(SUBMITTED_STORAGE_KEY) === 'true') {
+            const submitBtn = document.querySelector('.submit-btn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerText = `✅ คุณได้ส่งแบบทดสอบรอบ${EXAM_MODE_LABEL}ไปแล้ว`;
+            }
+            return;
+        }
+
+        let startTime = localStorage.getItem(TIMER_STORAGE_KEY);
+        const now = Date.now();
+        if (!startTime) {
+            startTime = now;
+            localStorage.setItem(TIMER_STORAGE_KEY, startTime);
+        } else {
+            startTime = parseInt(startTime, 10);
+        }
+
+        const totalAllowedSeconds = EXAM_DURATION_MINUTES * 60;
+        const elapsedSeconds = Math.floor((now - startTime) / 1000);
+        examTimeRemainingSeconds = Math.max(0, totalAllowedSeconds - elapsedSeconds);
+
+        createTimerWidget();
+        updateTimerDisplay();
+
+        if (examTimeRemainingSeconds <= 0) {
+            handleTimeExpired();
+            return;
+        }
+
+        examTimerInterval = setInterval(() => {
+            examTimeRemainingSeconds--;
+            updateTimerDisplay();
+
+            if (examTimeRemainingSeconds <= 0) {
+                clearInterval(examTimerInterval);
+                handleTimeExpired();
+            }
+        }, 1000);
+    }
+
+    function createTimerWidget() {
+        if (document.getElementById('examTimerFloatingWidget')) return;
+        const widget = document.createElement('div');
+        widget.id = 'examTimerFloatingWidget';
+        widget.style.cssText = `
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            z-index: 999;
+            background: rgba(15, 23, 42, 0.95);
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 30px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 0.92em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        `;
+        widget.innerHTML = `
+            <span style="font-size: 1.15em;">⏱️</span>
+            <span id="examTimerDisplay" style="letter-spacing: 0.5px;">--:--</span>
+        `;
+        document.body.appendChild(widget);
+    }
+
+    function updateTimerDisplay() {
+        const display = document.getElementById('examTimerDisplay');
+        const widget = document.getElementById('examTimerFloatingWidget');
+        if (!display) return;
+
+        const minutes = Math.floor(examTimeRemainingSeconds / 60);
+        const seconds = examTimeRemainingSeconds % 60;
+        const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        display.innerText = formatted;
+
+        if (examTimeRemainingSeconds <= 60) {
+            display.style.color = '#ef4444';
+            if (widget) widget.style.border = '2px solid #ef4444';
+        } else if (examTimeRemainingSeconds <= 180) {
+            display.style.color = '#f59e0b';
+            if (widget) widget.style.border = '1px solid #f59e0b';
+        } else {
+            display.style.color = '#38bdf8';
+            if (widget) widget.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+        }
+    }
+
+    function handleTimeExpired() {
+        const display = document.getElementById('examTimerDisplay');
+        const widget = document.getElementById('examTimerFloatingWidget');
+        if (display) {
+            display.innerText = 'หมดเวลา!';
+            display.style.color = '#ef4444';
+        }
+        if (widget) {
+            widget.style.border = '2px solid #ef4444';
+            widget.style.background = 'rgba(127, 29, 29, 0.98)';
+        }
+        alert(`⏰ หมดเวลาการทำข้อสอบ (15 นาที)!\nระบบกำลังบันทึกและส่งคำตอบรอบ${EXAM_MODE_LABEL}ที่คุณทำไว้โดยอัตโนมัติ...`);
+        executeSubmit(true);
+    }
+
+    // =========================================================================
+    // 📤 การส่งคำตอบ (ปกติ & Auto-Submit)
+    // =========================================================================
+    function executeSubmit(isAuto) {
+        const studentIdEl = document.getElementById('studentIdInput');
+        const studentRoomEl = document.getElementById('studentRoomInput');
+        const studentNameEl = document.getElementById('studentNameInput');
+        const submitBtn = document.querySelector('.submit-btn');
+
+        if (!isAuto) {
+            if (!studentIdEl.value.trim() || !studentNameEl.value.trim() || !studentRoomEl.value.trim()) {
+                alert('กรุณากรอกข้อมูลผู้เข้าสอบ (รหัสประจำตัว, ห้องเรียน, ชื่อ-นามสกุล) ให้ครบถ้วน');
+                return;
+            }
+            for (let i = 0; i < 15; i++) {
+                const checked = document.querySelector(`input[name="q_${i}"]:checked`);
+                if (!checked) {
+                    alert('กรุณาตอบคำถามให้ครบทุกข้อก่อนส่ง (ยังมีข้อที่ไม่ได้เลือกคำตอบ)');
+                    return;
+                }
+            }
+        }
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerText = isAuto ? '⏳ หมดเวลา - กำลังส่งคำตอบอัตโนมัติ...' : '⏳ กำลังส่งคำตอบและตรวจผล...';
+        }
+
+        const formData = {
+            studentId: studentIdEl.value.trim() || (isAuto ? 'หมดเวลา-' + Date.now().toString().slice(-4) : 'ไม่ระบุ ID'),
+            studentRoom: studentRoomEl.value.trim() || (isAuto ? 'ส่งอัตโนมัติ' : 'ไม่ระบุห้อง'),
+            studentName: studentNameEl.value.trim() || (isAuto ? `ผู้สอบ (หมดเวลา 15 นาที ${EXAM_MODE_LABEL})` : 'ไม่ระบุชื่อ'),
+            examType: CURRENT_EXAM_KEY,
+            examMode: EXAM_MODE
+        };
+
+        for (let i = 0; i < 15; i++) {
+            const sel = document.querySelector(`input[name="q_${i}"]:checked`);
+            formData[`q_${i}`] = sel ? sel.value : "ไม่ได้ตอบ";
+        }
+
+        window.onbeforeunload = null;
+        localStorage.setItem(SUBMITTED_STORAGE_KEY, 'true');
+        if (examTimerInterval) clearInterval(examTimerInterval);
+
+        function handleSuccess(response) {
+            if (response && response.alreadySubmitted) {
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerText = `❌ เคยส่งรอบ${EXAM_MODE_LABEL}ไปแล้ว`;
+                }
+                alert(response.message || `รหัสนี้เคยส่งข้อสอบรอบ${EXAM_MODE_LABEL}ไปแล้ว`);
+                return;
+            }
+            if (response && response.success) {
+                if (EXAM_MODE === 'pre') {
+                    alert(`🎉 ส่งแบบทดสอบก่อนเรียน (Pre-Test) เรียบร้อยแล้ว!\n\n` +
+                          `📊 คะแนนก่อนเรียน: ${response.score} / ${response.total} คะแนน\n\n` +
+                          `💡 ข้อสอบรอบก่อนเรียนจะไม่แสดงเฉลย เพื่อเตรียมความพร้อมสำหรับเข้าสู่บทเรียน\n` +
+                          `เมื่อเรียนจบบทเรียนแล้ว อย่าลืมทำ "แบบทดสอบหลังเรียน (Post-Test)" เพื่อวัดพัฒนาการนะครับ`);
+                } else {
+                    let msg = `🎉 ส่งแบบทดสอบหลังเรียน (Post-Test) เรียบร้อยแล้ว!\n\n` +
+                              `🎯 คะแนนหลังเรียน: ${response.score} / ${response.total} คะแนน`;
+                    if (response.preScore !== null && response.preScore !== undefined) {
+                        const diff = response.diffScore;
+                        const diffSign = diff >= 0 ? '+' : '';
+                        msg += `\n\n📈 ผลการเปรียบเทียบพัฒนาการ (Learning Gain):\n` +
+                               `- คะแนนก่อนเรียน (Pre-Test): ${response.preScore} คะแนน\n` +
+                               `- คะแนนหลังเรียน (Post-Test): ${response.score} คะแนน\n` +
+                               `- พัฒนาการ: ${diffSign}${diff} คะแนน (${response.gainPercent}%)\n\n` +
+                               `🌟 ยอดเยี่ยมมากครับ!`;
+                    }
+                    alert(msg);
+                }
+                location.reload();
+            } else {
+                alert("เกิดข้อผิดพลาด: " + ((response && response.message) || 'กรุณาลองใหม่อีกครั้ง'));
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'ส่งคำตอบ';
+                }
+            }
+        }
+
+        function handleFailure(err) {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerText = 'ส่งคำตอบ';
+            }
+            alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: " + (err.message || err));
+        }
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run
+                .withSuccessHandler(handleSuccess)
+                .withFailureHandler(handleFailure)
+                .processQuiz(formData);
+        } else {
+            handleSuccess({ success: true, score: 'โหมดทดสอบ' });
+        }
+    }
+
+    document.getElementById('quizForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        executeSubmit(false);
+    });
+
+    // =========================================================================
+    // 🔒 ความปลอดภัยสำหรับครูผู้สอน (Teacher PIN Code)
+    // =========================================================================
+    function verifyTeacherAuth() {
+        if (sessionStorage.getItem('teacher_auth') === 'true') return true;
+        const enteredPin = prompt("🔒 กรุณากรอกรหัสผ่านครูผู้สอน (Teacher PIN):");
+        if (!enteredPin) return false;
+        if (enteredPin.trim() === TEACHER_PIN) {
+            sessionStorage.setItem('teacher_auth', 'true');
+            return true;
+        } else {
+            alert("❌ รหัสผ่านไม่ถูกต้อง ไม่อนุญาตให้เข้าถึงส่วนของครูผู้สอน");
+            return false;
+        }
+    }
+
+    function toggleTeacherPanel() {
+        const panel = document.getElementById('teacherPanel');
+        if (!panel) return;
+        const isHidden = panel.style.display === 'none' || panel.style.display === '';
+        if (isHidden) {
+            if (!verifyTeacherAuth()) return;
+        }
+        panel.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function resetExamTimerForTest() {
+        if (!verifyTeacherAuth()) return;
+        if (confirm(`คุณต้องการรีเซ็ตตัวจับเวลา 15 นาที และสถานะส่งข้อสอบ (รอบ${EXAM_MODE_LABEL}) สำหรับเครื่องนี้หรือไม่?`)) {
+            localStorage.removeItem(TIMER_STORAGE_KEY);
+            localStorage.removeItem(SUBMITTED_STORAGE_KEY);
+            alert(`✅ รีเซ็ตเวลาสอบรอบ${EXAM_MODE_LABEL}เรียบร้อยแล้ว กำลังโหลดหน้าใหม่...`);
+            location.reload();
+        }
+    }
+
+    // =========================================================================
+    // 🛡️ ระบบป้องกันการทุจริต (Anti-Cheat System)
+    // =========================================================================
+    let cheatStrikeCount = 0;
+    const MAX_STRIKES = 3;
+
+    function recordSuspiciousActivity(reason) {
+        cheatStrikeCount++;
+        const overlay = document.getElementById('warningOverlay');
+        const lockScreen = document.getElementById('lockScreen');
+
+        if (cheatStrikeCount >= MAX_STRIKES) {
+            if (lockScreen) lockScreen.style.display = 'flex';
+        } else {
+            if (overlay) {
+                overlay.style.display = 'flex';
+                setTimeout(() => { overlay.style.display = 'none'; }, 3000);
+            }
+        }
+
+        const studentId = document.getElementById('studentIdInput').value.trim();
+        const studentName = document.getElementById('studentNameInput').value.trim();
+        const studentRoom = document.getElementById('studentRoomInput').value.trim();
+
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+            google.script.run.logSuspiciousBehavior({
+                studentId: studentId || 'ไม่ระบุ',
+                studentName: studentName || 'ไม่ระบุ',
+                studentRoom: studentRoom || 'ไม่ระบุ',
+                actionType: reason,
+                count: cheatStrikeCount
+            });
+        }
+    }
+
+    window.addEventListener('blur', () => recordSuspiciousActivity('สลับหน้าจอ/เปิดแอปอื่น'));
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) recordSuspiciousActivity('สลับแท็บ/ย่อหน้าต่าง');
+    });
+
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('keydown', e => {
+        if (e.key === 'PrintScreen' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey)) {
+            e.preventDefault();
+            recordSuspiciousActivity('พยายามจับภาพหน้าจอ/พิมพ์ข้อสอบ');
+        }
+    });
+
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', initExamTimer);
+    } else {
+        initExamTimer();
+    }
+</script>
+</body>
+</html>
