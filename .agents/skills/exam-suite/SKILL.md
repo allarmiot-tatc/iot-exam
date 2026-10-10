@@ -72,7 +72,19 @@ Every exam module consists of two main files located in its own folder (e.g. `ex
 ### 3. Teacher Control Plane (Protected by PIN)
 - **Teacher PIN Code**: Standardized `TEACHER_PIN = "1234"` (stored in `sessionStorage.getItem('teacher_auth')`).
 - **Hidden by Default**: The teacher settings panel is collapsed (`display: none`).
-- **Restricted Actions**: Clicking `👨‍🏫 ส่วนของครูผู้สอน` or `🔄 รีเซ็ตเวลาสอบ` prompts for the PIN. Unauthorized attempts are rejected.
+- **Restricted Actions**: Clicking `👨‍🏫 ส่วนของครูผู้สอน`, `🔄 รีเซ็ตเวลาสอบ`, or `🔓 อนุญาตสอบทันที (Bypass Pre-Test)` prompts for the PIN. Unauthorized attempts are rejected.
+
+### 4. Sequential Lock & Learning Gain Engine (Pre-Test ➔ Post-Test)
+- **Sequential Lock**: When in Post-Test mode (`?mode=post`), student ID input triggers real-time query (`/api/check-student` or `checkStudentSubmitted`). If no completed Pre-Test is found:
+  - Form submit is disabled.
+  - A red notice banner is displayed with a 1-click shortcut: `[👉 คลิกที่นี่เพื่อไปทำแบบทดสอบก่อนเรียน (Pre-Test) ทันที]`.
+- **Teacher Bypass**: In `#teacherPanel`, teacher can click `🔓 อนุญาตสอบทันที (ครูกด)` with PIN `1234` to grant `teacher_bypass_pre` in `sessionStorage`, allowing students to test directly without Pre-Test.
+- **Learning Gain**: Automatic comparison: `Gain = PostScore - PreScore`, `Gain% = round((Gain / (15 - PreScore)) * 100)`. Displayed on completion screen and server scoreboard.
+
+### 5. Smart QR Engine & Link Sharing System
+- **Dual Network Generator**: Supports both `Online (GitHub Pages)` and `Wi-Fi โรงเรียน (LAN IP)`.
+- **Pre/Post Test Direct Switch**: Switch between Pre-Test and Post-Test dynamically updates QR code, direct URL, and LINE broadcast message template.
+- **1-Click Copy Buttons**: Includes `[📋 คัดลอกลิงก์]` and `[💬 คัดลอกข้อความส่ง LINE]` with pre-formatted announcements for teacher-student communication.
 
 ---
 

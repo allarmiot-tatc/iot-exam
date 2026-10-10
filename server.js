@@ -288,27 +288,44 @@ const server = http.createServer(async (req, res) => {
     // API ENDPOINTS
     // ==========================================
 
-    // API: ตรวจสอบสิทธิ์ว่าเคยส่งแล้วหรือไม่ (รองรับทั้ง Pre-Test และ Post-Test)
+    // API: ตรวจสอบสิทธิ์ว่าเคยส่งแล้วหรือไม่ (รองรับ Sequential Pre->Post Lock)
     if (pathname === '/api/check-student' && req.method === 'POST') {
         const body = await parseRequestBody(req);
         const studentId = String(body.studentId || '').trim();
         const examType = body.examType || '';
         const examMode = (body.examMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
+        const bypassPreCheck = body.bypassPreCheck === true;
 
         if (!studentId) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ submitted: false }));
+            res.end(JSON.stringify({ submitted: false, hasPre: true }));
             return;
         }
 
         const submissions = readJsonFile(SUBMISSIONS_FILE, []);
-        const already = submissions.find(s => s.studentId === studentId && (!examType || s.examType === examType) && (s.examMode || 'pre') === examMode);
 
+        // ตรวจสอบว่าเคยทำ Pre-Test หรือยัง (เมื่ออยู่ในรอบ Post-Test)
+        let hasPre = true;
+        if (examMode === 'post' && !bypassPreCheck) {
+            const preRecord = submissions.find(s => s.studentId === studentId && (!examType || s.examType === examType) && (s.examMode || 'pre') === 'pre');
+            hasPre = !!preRecord;
+        }
+
+        const already = submissions.find(s => s.studentId === studentId && (!examType || s.examType === examType) && (s.examMode || 'pre') === examMode);
         const modeText = examMode === 'pre' ? 'ก่อนเรียน (Pre-Test)' : 'หลังเรียน (Post-Test)';
+
+        let msg = '';
+        if (already) {
+            msg = `รหัสประจำตัว ${studentId} เคยส่งแบบทดสอบรอบ${modeText}ไปแล้ว (ส่งได้เพียงครั้งเดียว)`;
+        } else if (examMode === 'post' && !hasPre) {
+            msg = `⚠️ รหัสประจำตัว ${studentId} ยังไม่ได้ทำแบบทดสอบก่อนเรียน (Pre-Test) กรุณาทำแบบทดสอบก่อนเรียนก่อนครับ`;
+        }
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
             submitted: !!already,
-            message: already ? `รหัสประจำตัว ${studentId} เคยส่งแบบทดสอบรอบ${modeText}ไปแล้ว (ส่งได้เพียงครั้งเดียว)` : ''
+            hasPre: hasPre,
+            message: msg
         }));
         return;
     }
@@ -321,6 +338,7 @@ const server = http.createServer(async (req, res) => {
         const studentRoom = params.studentRoom || 'ไม่ได้ระบุห้อง';
         const examType = params.examType || 'exam_wifi';
         const examMode = (params.examMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
+        const bypassPreCheck = params.bypassPreCheck === true;
 
         if (!studentId) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -329,6 +347,8 @@ const server = http.createServer(async (req, res) => {
         }
 
         const submissions = readJsonFile(SUBMISSIONS_FILE, []);
+
+        // ตรวจสอบว่าเคยส่งรอบนี้แล้วหรือไม่
         const existing = submissions.find(s => s.studentId === studentId && s.examType === examType && (s.examMode || 'pre') === examMode);
         if (existing) {
             const modeText = examMode === 'pre' ? 'ก่อนเรียน (Pre-Test)' : 'หลังเรียน (Post-Test)';
@@ -339,6 +359,21 @@ const server = http.createServer(async (req, res) => {
                 message: `รหัสประจำตัว ${studentId} ได้ส่งคำตอบรอบ${modeText}ไปแล้ว ไม่อนุญาตให้ส่งซ้ำครับ`
             }));
             return;
+        }
+
+        // ตรวจสอบลำดับขั้นตอน: หากเป็น Post-Test ต้องผ่าน Pre-Test มาก่อน (เว้นแต่ได้รับอนุญาตจากครู)
+        let preRecord = null;
+        if (examMode === 'post') {
+            preRecord = submissions.find(s => s.studentId === studentId && s.examType === examType && (s.examMode || 'pre') === 'pre');
+            if (!preRecord && !bypassPreCheck) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                    success: false,
+                    requirePre: true,
+                    message: `⚠️ ไม่สามารถส่งข้อสอบได้: รหัสประจำตัว ${studentId} ยังไม่ได้ทำแบบทดสอบก่อนเรียน (Pre-Test) กรุณาสลับไปทำรอบก่อนเรียนก่อนครับ`
+                }));
+                return;
+            }
         }
 
         const examMeta = QUIZ_ANSWER_KEYS[examType] || QUIZ_ANSWER_KEYS.exam_wifi;

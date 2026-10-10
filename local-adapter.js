@@ -49,10 +49,11 @@
         var self = this;
         var urlMode = new URLSearchParams(window.location.search).get('mode');
         var mode = (examMode || urlMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
+        var bypass = sessionStorage.getItem('teacher_bypass_pre') === 'true';
         fetch('/api/check-student', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ studentId: studentId, examType: examType, examMode: mode })
+            body: JSON.stringify({ studentId: studentId, examType: examType, examMode: mode, bypassPreCheck: bypass })
         })
         .then(function(res) {
             if (!res.ok) throw new Error('HTTP error ' + res.status);
@@ -61,9 +62,11 @@
         .then(function(data) { self._successHandler(data); })
         .catch(function(err) {
             var isSubmitted = localStorage.getItem('exam_submitted_' + examType + '_' + mode) === 'true';
+            var hasPre = mode !== 'post' || bypass || localStorage.getItem('exam_submitted_' + examType + '_pre') === 'true';
             self._successHandler({
                 submitted: isSubmitted,
-                message: isSubmitted ? 'รหัสนี้เคยส่งแบบทดสอบรอบนี้ไปแล้ว (ไม่อนุญาตให้ส่งซ้ำ)' : ''
+                hasPre: hasPre,
+                message: isSubmitted ? 'รหัสนี้เคยส่งแบบทดสอบรอบนี้ไปแล้ว (ไม่อนุญาตให้ส่งซ้ำ)' : (!hasPre ? '⚠️ ยังไม่ได้ทำรอบก่อนเรียน' : '')
             });
         });
     };
@@ -72,7 +75,8 @@
         var self = this;
         var urlMode = new URLSearchParams(window.location.search).get('mode');
         var mode = (params.examMode || urlMode || 'pre').toLowerCase() === 'post' ? 'post' : 'pre';
-        var payload = Object.assign({}, params, { examType: examType, examMode: mode });
+        var bypass = sessionStorage.getItem('teacher_bypass_pre') === 'true';
+        var payload = Object.assign({}, params, { examType: examType, examMode: mode, bypassPreCheck: bypass });
         fetch('/api/process-quiz', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

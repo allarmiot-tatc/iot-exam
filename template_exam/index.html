@@ -358,6 +358,15 @@
             <span>🔄 รีเซ็ตเวลาสอบ (สำหรับทดสอบ)</span>
         </button>
     </div>
+    <div style="margin-top: 10px; padding: 10px 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div>
+            <strong style="color: #92400e; font-size: 0.88em;">🔓 ปลดล็อกข้อสอบหลังเรียน (Bypass Pre-Test):</strong>
+            <div style="font-size: 0.78em; color: #78350f;">อนุญาตให้นักเรียนทำรอบหลังเรียนได้ทันทีโดยไม่ต้องผ่านรอบก่อนเรียน</div>
+        </div>
+        <button type="button" onclick="toggleTeacherPreBypass(this)" id="btnBypassPre" style="background: #d97706; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.82em; display: inline-flex; align-items: center; gap: 4px;">
+            <span>🔓 อนุญาตสอบทันที (ครูกด)</span>
+        </button>
+    </div>
 </div>
 
 <div class="form-container">
@@ -692,12 +701,19 @@
     // 📤 การส่งคำตอบ (ปกติ & Auto-Submit)
     // =========================================================================
     function executeSubmit(isAuto) {
+        const idStatusMsg = document.getElementById('idStatusMsg');
         const studentIdEl = document.getElementById('studentIdInput');
         const studentRoomEl = document.getElementById('studentRoomInput');
         const studentNameEl = document.getElementById('studentNameInput');
         const submitBtn = document.querySelector('.submit-btn');
 
         if (!isAuto) {
+            if (EXAM_MODE === 'post' && sessionStorage.getItem('teacher_bypass_pre') !== 'true') {
+                if (idStatusMsg && idStatusMsg.innerHTML.includes('ยังไม่พบประวัติ')) {
+                    alert('⚠️ ไม่สามารถส่งข้อสอบได้: รหัสนี้ยังไม่ได้ทำแบบทดสอบก่อนเรียน (Pre-Test) กรุณาสลับไปทำรอบก่อนเรียนก่อนครับ');
+                    return;
+                }
+            }
             if (!studentIdEl.value.trim() || !studentNameEl.value.trim() || !studentRoomEl.value.trim()) {
                 alert('กรุณากรอกข้อมูลผู้เข้าสอบ (รหัสประจำตัว, ห้องเรียน, ชื่อ-นามสกุล) ให้ครบถ้วน');
                 return;
@@ -730,7 +746,6 @@
         }
 
         window.onbeforeunload = null;
-        localStorage.setItem(SUBMITTED_STORAGE_KEY, 'true');
         if (examTimerInterval) clearInterval(examTimerInterval);
 
         function handleSuccess(response) {
@@ -743,6 +758,7 @@
                 return;
             }
             if (response && response.success) {
+                localStorage.setItem(SUBMITTED_STORAGE_KEY, 'true');
                 if (EXAM_MODE === 'pre') {
                     alert(`🎉 ส่งแบบทดสอบก่อนเรียน (Pre-Test) เรียบร้อยแล้ว!\n\n` +
                           `📊 คะแนนก่อนเรียน: ${response.score} / ${response.total} คะแนน\n\n` +
@@ -790,6 +806,69 @@
         }
     }
 
+    
+    // ตรวจสอบรหัสประจำตัวผู้สอบแบบเรียลไทม์ และระบบ Sequential Lock
+    let isStudentValid = true;
+    const studentIdInput = document.getElementById('studentIdInput');
+    const idStatusMsg = document.getElementById('idStatusMsg');
+    const submitBtn = document.querySelector('.submit-btn');
+
+    if (studentIdInput && idStatusMsg) {
+        studentIdInput.addEventListener('blur', function() {
+            const studentId = this.value.trim();
+            if (studentId.length >= 3) {
+                idStatusMsg.style.display = 'block';
+                idStatusMsg.style.color = '#0284c7';
+                idStatusMsg.innerText = '🔄 กำลังตรวจสอบรหัสประจำตัว...';
+
+                if (typeof google !== 'undefined' && google.script && google.script.run) {
+                    google.script.run
+                        .withSuccessHandler(function(response) {
+                            if (response && response.submitted) {
+                                isStudentValid = false;
+                                idStatusMsg.style.color = '#dc3545';
+                                idStatusMsg.innerText = '❌ ' + (response.message || 'รหัสนี้เคยส่งแบบทดสอบรอบนี้ไปแล้ว');
+                                if (submitBtn) submitBtn.disabled = true;
+                            } else if (response && response.hasPre === false) {
+                                isStudentValid = false;
+                                idStatusMsg.style.color = '#dc2626';
+                                idStatusMsg.innerHTML = '<div style="background:#fef2f2; border:1px solid #fecaca; padding:10px 12px; border-radius:8px; margin-top:4px;">' +
+                                    '⚠️ <strong>ยังไม่พบประวัติการทำแบบทดสอบก่อนเรียน (Pre-Test)</strong><br>' +
+                                    '<span style="font-size:0.9em; color:#475569;">คุณต้องทำแบบทดสอบก่อนเรียนก่อน จึงจะสามารถสอบรอบหลังเรียนได้</span><br>' +
+                                    '<a href="?mode=pre" style="display:inline-block; margin-top:8px; background:#d97706; color:white; padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:0.9em; box-shadow:0 2px 4px rgba(217,119,6,0.3);">' +
+                                    '👉 คลิกที่นี่เพื่อไปทำแบบทดสอบก่อนเรียน (Pre-Test) ทันที</a>' +
+                                    '</div>';
+                                if (submitBtn) submitBtn.disabled = true;
+                            } else {
+                                isStudentValid = true;
+                                idStatusMsg.style.color = '#28a745';
+                                idStatusMsg.innerText = '✅ รหัสนี้มีสิทธิ์เข้าสอบ';
+                                if (submitBtn) submitBtn.disabled = false;
+                            }
+                        })
+                        .withFailureHandler(function() {
+                            isStudentValid = true;
+                            idStatusMsg.style.display = 'none';
+                            if (submitBtn) submitBtn.disabled = false;
+                        })
+                        .checkStudentSubmitted(studentId, EXAM_MODE);
+                } else {
+                    idStatusMsg.style.display = 'none';
+                }
+            } else {
+                idStatusMsg.style.display = 'none';
+            }
+        });
+
+        studentIdInput.addEventListener('input', function() {
+            if (!isStudentValid || idStatusMsg.innerHTML.includes('ยังไม่พบประวัติ')) {
+                isStudentValid = true;
+                idStatusMsg.style.display = 'none';
+                if (submitBtn) submitBtn.disabled = false;
+            }
+        });
+    }
+
     document.getElementById('quizForm').addEventListener('submit', function(e) {
         e.preventDefault();
         executeSubmit(false);
@@ -820,7 +899,45 @@
         }
         panel.style.display = isHidden ? 'block' : 'none';
         if (isHidden) {
+            updateTeacherBypassButtonUI();
             panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    
+    function toggleTeacherPreBypass(btn) {
+        if (!verifyTeacherAuth()) return;
+        const current = sessionStorage.getItem('teacher_bypass_pre') === 'true';
+        if (!current) {
+            sessionStorage.setItem('teacher_bypass_pre', 'true');
+            alert('✅ ปลดล็อกเรียบร้อย: อนุญาตให้ทำข้อสอบหลังเรียนได้โดยไม่ต้องผ่านรอบก่อนเรียน (มีผลในเซสชันนี้)');
+            if (btn) {
+                btn.innerHTML = '<span>🔒 ปิดการยกเว้น (บังคับ Pre-Test ตามเดิม)</span>';
+                btn.style.background = '#64748b';
+            }
+        } else {
+            sessionStorage.removeItem('teacher_bypass_pre');
+            alert('🔒 ปิดการยกเว้นแล้ว: บังคับให้นักเรียนต้องทำรอบก่อนเรียนตามปกติ');
+            if (btn) {
+                btn.innerHTML = '<span>🔓 อนุญาตสอบทันที (ครูกด)</span>';
+                btn.style.background = '#d97706';
+            }
+        }
+        const idInput = document.getElementById('studentIdInput');
+        if (idInput && idInput.value.trim()) {
+            idInput.dispatchEvent(new Event('blur'));
+        }
+    }
+
+    function updateTeacherBypassButtonUI() {
+        const btn = document.getElementById('btnBypassPre');
+        if (!btn) return;
+        if (sessionStorage.getItem('teacher_bypass_pre') === 'true') {
+            btn.innerHTML = '<span>🔒 ปิดการยกเว้น (บังคับ Pre-Test ตามเดิม)</span>';
+            btn.style.background = '#64748b';
+        } else {
+            btn.innerHTML = '<span>🔓 อนุญาตสอบทันที (ครูกด)</span>';
+            btn.style.background = '#d97706';
         }
     }
 
